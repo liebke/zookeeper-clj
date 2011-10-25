@@ -44,7 +44,7 @@
   "
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (perm-or *perms* :read :write :create)
 "
   ([perms & perm-keys]
@@ -203,7 +203,7 @@
   "
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :wacher #(println \"event received: \" %)))
 
     (defn callback [result]
@@ -253,7 +253,7 @@
 
   Example:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
 
     (defn callback [result]
@@ -305,7 +305,7 @@
 
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watch #(println \"event received: \" %)))
 
     (defn callback [result]
@@ -347,7 +347,7 @@
   "
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
 
     (defn callback [result]
@@ -429,7 +429,7 @@
 
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
 
     (defn callback [result]
@@ -481,7 +481,7 @@
 
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
 
     (defn callback [result]
@@ -530,7 +530,7 @@
  "
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
     (add-auth-info client \"digest\" \"david:secret\")
 
@@ -585,7 +585,7 @@
   "
   Examples:
 
-    (use 'treeherd.zookeeper)
+    (use 'zookeeper)
     (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
 
     (def open-acl-unsafe (acl \"world\" \"anyone\" :read :create :delete :admin :write))
