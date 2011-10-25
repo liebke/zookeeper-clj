@@ -1,4 +1,4 @@
-(ns zookeeper.core
+(ns zookeeper
   "
   The core functions of ZooKeeper are name service,
   configuration, and group membership, and this

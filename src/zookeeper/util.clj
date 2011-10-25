@@ -1,5 +1,5 @@
 (ns zookeeper.util
-  (:require [zookeeper.core :as zk]))
+  (:require [zookeeper :as zk]))
 
 (defn extract-id
   "Returns an integer id associated with a sequential node"
