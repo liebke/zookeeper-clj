@@ -3,9 +3,9 @@
 A Clojure DSL for Apache ZooKeeper.
 
 
-## zookeeper.core
+## zookeeper
 
-The zookeeper.core primary namespace of the ZooKeeper DSL.
+The primary namespace of the ZooKeeper DSL is zookeeper.
 
 
 ## zookeeper.util

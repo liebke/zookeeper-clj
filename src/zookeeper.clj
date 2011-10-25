@@ -12,17 +12,8 @@
 "
   (:import (org.apache.zookeeper ZooKeeper
                                  ZooKeeper$States
-                                 CreateMode
-                                 Watcher
                                  ZooDefs$Ids
                                  ZooDefs$Perms
-                                 AsyncCallback$StringCallback
-                                 AsyncCallback$VoidCallback
-                                 AsyncCallback$StatCallback
-                                 AsyncCallback$StatCallback
-                                 AsyncCallback$Children2Callback
-                                 AsyncCallback$DataCallback
-                                 AsyncCallback$ACLCallback
                                  Watcher$Event$KeeperState
                                  Watcher$Event$EventType
                                  KeeperException)
@@ -31,8 +22,8 @@
                                       ACL)
            (java.util.concurrent CountDownLatch))
   (:require [clojure.string :as s]
-            [zookeeper.logger :as log])
-  (:use [zookeeper.internal :only [try*]]))
+            [zookeeper.internal :as zi]
+            [zookeeper.logger :as log]))
 
 (def ^:dynamic *perms* {:write ZooDefs$Perms/WRITE
                         :read ZooDefs$Perms/READ
@@ -57,38 +48,6 @@
           :read-all-acl ZooDefs$Ids/READ_ACL_UNSAFE ;; This ACL gives the world the ability to read
           })
 
-(def create-modes { ;; The znode will not be automatically deleted upon client's disconnect
-                   {:persistent? true, :sequential? false} CreateMode/PERSISTENT
-                   ;; The znode will be deleted upon the client's disconnect, and its name will be appended with a monotonically increasing number
-                   {:persistent? false, :sequential? true} CreateMode/EPHEMERAL_SEQUENTIAL
-                   ;; The znode will be deleted upon the client's disconnect
-                   {:persistent? false, :sequential? false} CreateMode/EPHEMERAL
-                   ;; The znode will not be automatically deleted upon client's disconnect, and its name will be appended with a monotonically increasing number
-                   {:persistent? true, :sequential? true} CreateMode/PERSISTENT_SEQUENTIAL})
-
-(defn stat-to-map
-  ([stat]
-     ;;(long czxid, long mzxid, long ctime, long mtime, int version, int cversion, int aversion, long ephemeralOwner, int dataLength, int numChildren, long pzxid)
-     (when stat
-       {:czxid (.getCzxid stat)
-        :mzxid (.getMzxid stat)
-        :ctime (.getCtime stat)
-        :mtime (.getMtime stat)
-        :version (.getVersion stat)
-        :cversion (.getCversion stat)
-        :aversion (.getAversion stat)
-        :ephemeralOwner (.getEphemeralOwner stat)
-        :dataLength (.getDataLength stat)
-        :numChildren (.getNumChildren stat)
-        :pzxid (.getPzxid stat)})))
-
-(defn event-to-map
-  ([event]
-     (when event
-       {:event-type (keyword (.name (.getType event)))
-        :keeper-state (keyword (.name (.getState event)))
-        :path (.getPath event)})))
-
 (defn event-types
   ":NodeDeleted :NodeDataChanged :NodeCreated :NodeChildrenChanged :None"
   ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$EventType/values)))))
@@ -101,80 +60,6 @@
   ":AUTH_FAILED :CLOSED :CONNECTED :ASSOCIATING :CONNECTING"
   ([] (into #{} (map #(keyword (.toString %)) (ZooKeeper$States/values)))))
 
-;; Watcher
-
-
-(defn make-watcher
-  ([handler]
-     (reify Watcher
-       (process [this event]
-         (handler (event-to-map event))))))
-
-;; Callbacks
-
-(defn string-callback
-  ([handler]
-     (reify AsyncCallback$StringCallback
-       (processResult [this return-code path context name]
-         (handler {:return-code return-code
-                   :path path
-                   :context context
-                   :name name})))))
-
-(defn stat-callback
-  ([handler]
-     (reify AsyncCallback$StatCallback
-       (processResult [this return-code path context stat]
-         (handler {:return-code return-code
-                   :path path
-                   :context context
-                   :stat (stat-to-map stat)})))))
-
-(defn children-callback
-  ([handler]
-     (reify AsyncCallback$Children2Callback
-       (processResult [this return-code path context children stat]
-         (handler {:return-code return-code
-                   :path path
-                   :context context
-                   :children (seq children)
-                   :stat (stat-to-map stat)})))))
-
-(defn void-callback
-  ([handler]
-     (reify AsyncCallback$VoidCallback
-       (processResult [this return-code path context]
-         (handler {:return-code return-code
-                   :path path
-                   :context context})))))
-
-(defn data-callback
-  ([handler]
-     (reify AsyncCallback$DataCallback
-       (processResult [this return-code path context data stat]
-         (handler {:return-code return-code
-                   :path path
-                   :context context
-                   :data data
-                   :stat (stat-to-map stat)})))))
-
-(defn acl-callback
-  ([handler]
-     (reify AsyncCallback$ACLCallback
-       (processResult [this return-code path context acl stat]
-         (handler {:return-code return-code
-                   :path path
-                   :context context
-                   :acl (seq acl)
-                   :stat (stat-to-map stat)})))))
-
-(defn promise-callback
-  ([prom callback-fn]
-     (fn [{:keys [return-code path context name] :as result}]
-       (deliver prom result)
-       (when callback-fn
-         (callback-fn result)))))
-
 ;; Public DSL
 
 (defn connect
@@ -182,7 +67,7 @@
   ([connection-string & {:keys [timeout-msec watcher]
                          :or {timeout-msec 5000}}]
      (let [latch (CountDownLatch. 1)
-           session-watcher (make-watcher (fn [event]
+           session-watcher (zi/make-watcher (fn [event]
                                            (when (= (:keeper-state event) :SyncConnected)
                                              (.countDown latch))
                                            (when watcher (watcher event))))
@@ -192,7 +77,7 @@
 
 (defn register-watcher
   ([client watcher]
-     (.register client (make-watcher watcher))))
+     (.register client (zi/make-watcher watcher))))
 
 (defn state
   "Returns current state of client, including :CONNECTING, :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
@@ -223,16 +108,16 @@
                         context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (try*
-          (.exists client path (if watcher (make-watcher watcher) watch?)
-                   (stat-callback (promise-callback prom callback)) context)
+         (zi/try*
+          (.exists client path (if watcher (zi/make-watcher watcher) watch?)
+                   (zi/stat-callback (zi/promise-callback prom callback)) context)
           (catch KeeperException e
             (do
               (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
               (throw e))))
          prom)
-       (try*
-        (stat-to-map (.exists client path (if watcher (make-watcher watcher) watch?)))
+       (zi/try*
+        (zi/stat-to-map (.exists client path (if watcher (zi/make-watcher watcher) watch?)))
         (catch KeeperException e
           (do
             (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
@@ -279,19 +164,19 @@
                         async? false}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (try*
+         (zi/try*
            (.create client path data acl
-                    (create-modes {:persistent? persistent?, :sequential? sequential?})
-                    (string-callback (promise-callback prom callback))
+                    (zi/create-modes {:persistent? persistent?, :sequential? sequential?})
+                    (zi/string-callback (zi/promise-callback prom callback))
                     context)
            (catch KeeperException e
              (do
                (log/debug (str "create: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
          prom)
-       (try*
+       (zi/try*
          (.create client path data acl
-                  (create-modes {:persistent? persistent?, :sequential? sequential?}))
+                  (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
          (catch org.apache.zookeeper.KeeperException$NodeExistsException e
            (log/debug (str "Tried to create an existing node: " path))
            false)
@@ -324,14 +209,14 @@
                         context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (try*
-           (.delete client path version (void-callback (promise-callback prom callback)) context)
+         (zi/try*
+           (.delete client path version (zi/void-callback (zi/promise-callback prom callback)) context)
            (catch KeeperException e
              (do
                (log/debug (str "delete: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
          prom)
-       (try*
+       (zi/try*
          (do
            (.delete client path version)
            true)
@@ -374,17 +259,17 @@
                         context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (try*
+         (zi/try*
            (seq (.getChildren client path
-                              (if watcher (make-watcher watcher) watch?)
-                              (children-callback (promise-callback prom callback)) context))
+                              (if watcher (zi/make-watcher watcher) watch?)
+                              (zi/children-callback (zi/promise-callback prom callback)) context))
            (catch KeeperException e
              (do
                (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e  ":= " (.printStackTrace e)))
                (throw e))))
          prom)
-       (try*
-        (seq (.getChildren client path (if watcher (make-watcher watcher) watch?)))
+       (zi/try*
+        (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
         (catch org.apache.zookeeper.KeeperException$NoNodeException e
           (log/debug (str "Tried to list children of a non-existent node: " path))
           false)
@@ -460,21 +345,21 @@
      (let [stat (Stat.)]
        (if (or async? callback)
         (let [prom (promise)]
-          (try*
-           (.getData client path (if watcher (make-watcher watcher) watch?)
-                     (data-callback (promise-callback prom callback)) context)
+          (zi/try*
+           (.getData client path (if watcher (zi/make-watcher watcher) watch?)
+                     (zi/data-callback (zi/promise-callback prom callback)) context)
            (catch KeeperException e
              (do
                (log/debug (str "data: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
           prom)
-        {:data (try*
-                (.getData client path (if watcher (make-watcher watcher) watch?) stat)
+        {:data (zi/try*
+                (.getData client path (if watcher (zi/make-watcher watcher) watch?) stat)
                 (catch KeeperException e
                   (do
                     (log/debug (str "data: KeeperException Thrown: code: " (.code e) ", exception: " e))
                     (throw e))))
-         :stat (stat-to-map stat)}))))
+         :stat (zi/stat-to-map stat)}))))
 
 (defn set-data
   "
@@ -508,15 +393,15 @@
                                      context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (try*
+         (zi/try*
            (.setData client path data version
-                     (stat-callback (promise-callback prom callback)) context)
+                     (zi/stat-callback (zi/promise-callback prom callback)) context)
            (catch KeeperException e
              (do
                (log/debug (str "set-data: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
          prom)
-       (try*
+       (zi/try*
          (.setData client path data version)
          (catch KeeperException e
            (do
@@ -552,25 +437,25 @@
      (let [stat (Stat.)]
        (if (or async? callback)
          (let [prom (promise)]
-           (try*
-             (.getACL client path stat (acl-callback (promise-callback prom callback)) context)
+           (zi/try*
+             (.getACL client path stat (zi/acl-callback (zi/promise-callback prom callback)) context)
              (catch KeeperException e
                (do
                  (log/debug (str "get-acl: KeeperException Thrown: code: " (.code e) ", exception: " e))
                  (throw e))))
          prom)
-         {:acl (try*
+         {:acl (zi/try*
                 (seq (.getACL client path stat))
                 (catch KeeperException e
                   (do
                     (log/debug (str "get-acl: KeeperException Thrown: code: " (.code e) ", exception: " e))
                     (throw e))))
-          :stat (stat-to-map stat)}))))
+          :stat (zi/stat-to-map stat)}))))
 
 (defn add-auth-info
   "Add auth info to connection."
   ([client scheme auth]
-     (try*
+     (zi/try*
       (.addAuthInfo client scheme (if (string? auth) (.getBytes auth) auth))
       (catch KeeperException e
         (do
