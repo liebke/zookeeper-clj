@@ -10,55 +10,14 @@
   * http://archive.cloudera.com/cdh/3/zookeeper/zookeeperProgrammers.pdf
 
 "
-  (:import (org.apache.zookeeper ZooKeeper
-                                 ZooKeeper$States
-                                 ZooDefs$Ids
-                                 ZooDefs$Perms
-                                 Watcher$Event$KeeperState
-                                 Watcher$Event$EventType
-                                 KeeperException)
-           (org.apache.zookeeper.data Stat
-                                      Id
-                                      ACL)
+  (:import (org.apache.zookeeper ZooKeeper KeeperException)
+           (org.apache.zookeeper.data Stat Id ACL)
            (java.util.concurrent CountDownLatch))
   (:require [clojure.string :as s]
             [zookeeper.internal :as zi]
+            [zookeeper.util :as util]
             [zookeeper.logger :as log]))
 
-(def ^:dynamic *perms* {:write ZooDefs$Perms/WRITE
-                        :read ZooDefs$Perms/READ
-                        :delete ZooDefs$Perms/DELETE
-                        :create ZooDefs$Perms/CREATE
-                        :admin ZooDefs$Perms/ADMIN})
-
-(defn perm-or
-  "
-  Examples:
-
-    (use 'zookeeper)
-    (perm-or *perms* :read :write :create)
-"
-  ([perms & perm-keys]
-     (apply bit-or (vals (select-keys perms perm-keys)))))
-
-(def acls {:open-acl-unsafe ZooDefs$Ids/OPEN_ACL_UNSAFE ;; This is a completely open ACL
-          :anyone-id-unsafe ZooDefs$Ids/ANYONE_ID_UNSAFE ;; This Id represents anyone
-          :auth-ids ZooDefs$Ids/AUTH_IDS ;; This Id is only usable to set ACLs
-          :creator-all-acl ZooDefs$Ids/CREATOR_ALL_ACL ;; This ACL gives the creators authentication id's all permissions
-          :read-all-acl ZooDefs$Ids/READ_ACL_UNSAFE ;; This ACL gives the world the ability to read
-          })
-
-(defn event-types
-  ":NodeDeleted :NodeDataChanged :NodeCreated :NodeChildrenChanged :None"
-  ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$EventType/values)))))
-
-(defn keeper-states
-  ":AuthFailed :Unknown :SyncConnected :Disconnected :Expired :NoSyncConnected"
-  ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$KeeperState/values)))))
-
-(defn client-states
-  ":AUTH_FAILED :CLOSED :CONNECTED :ASSOCIATING :CONNECTING"
-  ([] (into #{} (map #(keyword (.toString %)) (ZooKeeper$States/values)))))
 
 ;; Public DSL
 
@@ -159,7 +118,7 @@
   ([client path & {:keys [data acl persistent? sequential? context callback async?]
                    :or {persistent? false
                         sequential? false
-                        acl (acls :open-acl-unsafe)
+                        acl (zi/acls :open-acl-unsafe)
                         context path
                         async? false}}]
      (if (or async? callback)
@@ -284,6 +243,14 @@
      (doseq [child (or (children client path) nil)]
        (apply delete-all client (str path "/" child) options))
      (apply delete client path options)))
+
+(defn delete-children
+  "Deletes all of the node's children."
+  ([client path & options]
+     (let [{:keys [sort?] :or {sort? false}} options
+           children (or (children client path) nil)]
+       (doseq [child (if sort? (util/sort-sequential-nodes children) children)]
+         (apply delete-all client (str path "/" child) options)))))
 
 (defn create-all
   "Create a node and all of its parents. The last node will be ephemeral,
@@ -482,7 +449,6 @@
     (add-auth-info client \"digest\" \"david:secret\")
 
     ;; works
-    ;; same as (acls :creator-all-acl)
     (def auth-acl (acl \"auth\" \"\" :read :create :delete :admin :write))
     (create client \"/mynode4\" :acl [auth-acl])
     (data client \"/mynode4\")
@@ -493,10 +459,17 @@
 
 "
   ([scheme id-value perm & more-perms]
-     (ACL. (apply perm-or *perms* perm more-perms) (acl-id scheme id-value))))
+     (ACL. (apply zi/perm-or zi/perms perm more-perms) (acl-id scheme id-value))))
 
 
+;; filtering
 
+(defn filter-children-by-pattern
+  ([client dir pattern]
+     (when-let [children (children client dir)]
+       (filter #(re-find pattern %) children))))
 
-
+(defn filter-children-by-prefix
+  ([client dir prefix]
+     (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
 

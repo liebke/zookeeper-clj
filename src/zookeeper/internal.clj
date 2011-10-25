@@ -1,6 +1,11 @@
 (ns zookeeper.internal
   (:import (org.apache.zookeeper CreateMode
                                  Watcher
+                                 ZooDefs$Perms
+                                 ZooDefs$Ids
+                                 ZooKeeper$States
+                                 Watcher$Event$KeeperState
+                                 Watcher$Event$EventType
                                  AsyncCallback$StringCallback
                                  AsyncCallback$VoidCallback
                                  AsyncCallback$StatCallback
@@ -126,5 +131,43 @@
                    ;; The znode will not be automatically deleted upon client's disconnect, and its name will be appended with a monotonically increasing number
                    {:persistent? true, :sequential? true} CreateMode/PERSISTENT_SEQUENTIAL})
 
+
+
+;; ACL
+
+(def ^:dynamic perms {:write ZooDefs$Perms/WRITE
+                      :read ZooDefs$Perms/READ
+                      :delete ZooDefs$Perms/DELETE
+                      :create ZooDefs$Perms/CREATE
+                      :admin ZooDefs$Perms/ADMIN})
+
+(defn perm-or
+  "
+  Examples:
+
+    (use 'zookeeper)
+    (perm-or *perms* :read :write :create)
+"
+  ([perms & perm-keys]
+     (apply bit-or (vals (select-keys perms perm-keys)))))
+
+(def acls {:open-acl-unsafe ZooDefs$Ids/OPEN_ACL_UNSAFE ;; This is a completely open ACL
+          :anyone-id-unsafe ZooDefs$Ids/ANYONE_ID_UNSAFE ;; This Id represents anyone
+          :auth-ids ZooDefs$Ids/AUTH_IDS ;; This Id is only usable to set ACLs
+          :creator-all-acl ZooDefs$Ids/CREATOR_ALL_ACL ;; This ACL gives the creators authentication id's all permissions
+          :read-all-acl ZooDefs$Ids/READ_ACL_UNSAFE ;; This ACL gives the world the ability to read
+          })
+
+(defn event-types
+  ":NodeDeleted :NodeDataChanged :NodeCreated :NodeChildrenChanged :None"
+  ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$EventType/values)))))
+
+(defn keeper-states
+  ":AuthFailed :Unknown :SyncConnected :Disconnected :Expired :NoSyncConnected"
+  ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$KeeperState/values)))))
+
+(defn client-states
+  ":AUTH_FAILED :CLOSED :CONNECTED :ASSOCIATING :CONNECTING"
+  ([] (into #{} (map #(keyword (.toString %)) (ZooKeeper$States/values)))))
 
 
