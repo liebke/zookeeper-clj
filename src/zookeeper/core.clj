@@ -1,16 +1,8 @@
-(ns treeherd.zookeeper
+(ns zookeeper.core
   "
   The core functions of ZooKeeper are name service,
   configuration, and group membership, and this
   functionality is provided by this library.
-  Additional functionality, including leader-election,
-  barriers, distributed-locks, priority-queues are
-  provided in the following treeherd name-spaces:
-
-  * treeherd.election
-  * treeherd.barrier
-  * treeherd.locks
-  * treeherd.queues
 
   See examples:
 
@@ -37,12 +29,10 @@
            (org.apache.zookeeper.data Stat
                                       Id
                                       ACL)
-           (org.apache.commons.codec.digest DigestUtils)
-           (org.apache.commons.codec.binary Base64)
            (java.util.concurrent CountDownLatch))
   (:require [clojure.string :as s]
-            [treeherd.util :as util]
-            [treeherd.logger :as log]))
+            [zookeeper.logger :as log])
+  (:use [zookeeper.internal :only [try*]]))
 
 (def ^:dynamic *perms* {:write ZooDefs$Perms/WRITE
                         :read ZooDefs$Perms/READ
@@ -233,7 +223,7 @@
                         context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (util/try*
+         (try*
           (.exists client path (if watcher (make-watcher watcher) watch?)
                    (stat-callback (promise-callback prom callback)) context)
           (catch KeeperException e
@@ -241,7 +231,7 @@
               (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
               (throw e))))
          prom)
-       (util/try*
+       (try*
         (stat-to-map (.exists client path (if watcher (make-watcher watcher) watch?)))
         (catch KeeperException e
           (do
@@ -289,7 +279,7 @@
                         async? false}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (util/try*
+         (try*
            (.create client path data acl
                     (create-modes {:persistent? persistent?, :sequential? sequential?})
                     (string-callback (promise-callback prom callback))
@@ -299,7 +289,7 @@
                (log/debug (str "create: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
          prom)
-       (util/try*
+       (try*
          (.create client path data acl
                   (create-modes {:persistent? persistent?, :sequential? sequential?}))
          (catch org.apache.zookeeper.KeeperException$NodeExistsException e
@@ -334,14 +324,14 @@
                         context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (util/try*
+         (try*
            (.delete client path version (void-callback (promise-callback prom callback)) context)
            (catch KeeperException e
              (do
                (log/debug (str "delete: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
          prom)
-       (util/try*
+       (try*
          (do
            (.delete client path version)
            true)
@@ -384,7 +374,7 @@
                         context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (util/try*
+         (try*
            (seq (.getChildren client path
                               (if watcher (make-watcher watcher) watch?)
                               (children-callback (promise-callback prom callback)) context))
@@ -393,7 +383,7 @@
                (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e  ":= " (.printStackTrace e)))
                (throw e))))
          prom)
-       (util/try*
+       (try*
         (seq (.getChildren client path (if watcher (make-watcher watcher) watch?)))
         (catch org.apache.zookeeper.KeeperException$NoNodeException e
           (log/debug (str "Tried to list children of a non-existent node: " path))
@@ -409,12 +399,6 @@
      (doseq [child (or (children client path) nil)]
        (apply delete-all client (str path "/" child) options))
      (apply delete client path options)))
-
-(defn delete-children
-  "Deletes all of the node's children."
-  ([client path & options]
-     (doseq [child (or (children client path) nil)]
-       (apply delete-all client (str path "/" child) options))))
 
 (defn create-all
   "Create a node and all of its parents. The last node will be ephemeral,
@@ -476,7 +460,7 @@
      (let [stat (Stat.)]
        (if (or async? callback)
         (let [prom (promise)]
-          (util/try*
+          (try*
            (.getData client path (if watcher (make-watcher watcher) watch?)
                      (data-callback (promise-callback prom callback)) context)
            (catch KeeperException e
@@ -484,7 +468,7 @@
                (log/debug (str "data: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
           prom)
-        {:data (util/try*
+        {:data (try*
                 (.getData client path (if watcher (make-watcher watcher) watch?) stat)
                 (catch KeeperException e
                   (do
@@ -524,7 +508,7 @@
                                      context path}}]
      (if (or async? callback)
        (let [prom (promise)]
-         (util/try*
+         (try*
            (.setData client path data version
                      (stat-callback (promise-callback prom callback)) context)
            (catch KeeperException e
@@ -532,7 +516,7 @@
                (log/debug (str "set-data: KeeperException Thrown: code: " (.code e) ", exception: " e))
                (throw e))))
          prom)
-       (util/try*
+       (try*
          (.setData client path data version)
          (catch KeeperException e
            (do
@@ -541,17 +525,6 @@
 
 
 ;; ACL
-
-(defn hash-password
-  " Returns a base64 encoded string of a SHA-1 digest of the given password string.
-
-  Examples:
-
-    (hash-password \"secret\")
-
-"
-  ([password]
-     (Base64/encodeBase64String (DigestUtils/sha password))))
 
 (defn get-acl
  "
@@ -579,14 +552,14 @@
      (let [stat (Stat.)]
        (if (or async? callback)
          (let [prom (promise)]
-           (util/try*
+           (try*
              (.getACL client path stat (acl-callback (promise-callback prom callback)) context)
              (catch KeeperException e
                (do
                  (log/debug (str "get-acl: KeeperException Thrown: code: " (.code e) ", exception: " e))
                  (throw e))))
          prom)
-         {:acl (util/try*
+         {:acl (try*
                 (seq (.getACL client path stat))
                 (catch KeeperException e
                   (do
@@ -597,7 +570,7 @@
 (defn add-auth-info
   "Add auth info to connection."
   ([client scheme auth]
-     (util/try*
+     (try*
       (.addAuthInfo client scheme (if (string? auth) (.getBytes auth) auth))
       (catch KeeperException e
         (do
@@ -632,11 +605,6 @@
     ;; change auth-info
     (add-auth-info client \"digest\" \"edgar:secret\")
     (data client \"/mynode4\")
-
-    ;; doesn't works
-    (def digest-acl (acl  \"digest\" (str \"david:\" (hash-password \"secret\")) :read :create :delete :admin :write))
-    (create client \"/mynode3\" :acl [digest-acl])
-    (data client \"/mynode3\")
 
 "
   ([scheme id-value perm & more-perms]

@@ -1,5 +1,5 @@
-(ns treeherd.zookeeper.util
-  (:require [treeherd.zookeeper :as zk]))
+(ns zookeeper.util
+  (:require [zookeeper.core :as zk]))
 
 (defn extract-id
   "Returns an integer id associated with a sequential node"
@@ -28,3 +28,12 @@
 (defn filter-children-by-prefix
   ([client dir prefix]
      (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
+
+(defn delete-children
+  "Deletes all of the node's children."
+  ([client path & options]
+     (let [{:keys [sort?] :or {sort? false}} options
+           children (or (zk/children client path) nil)]
+       (doseq [child (if sort? (sort-sequential-nodes children) children)]
+         (apply zk/delete-all client (str path "/" child) options)))))
+

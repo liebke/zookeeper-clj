@@ -1,5 +1,5 @@
-(ns treeherd.test.data_test
-  (:use [treeherd.data])
+(ns zookeeper.test.data_test
+  (:use [zookeeper.data])
   (:use [clojure.test]))
 
 (deftest to-from-bytes

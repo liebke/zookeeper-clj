@@ -1,4 +1,4 @@
-(ns treeherd.data
+(ns zookeeper.data
   (:import (java.nio ByteBuffer)))
 
 (defmacro get-bytes [value size f]

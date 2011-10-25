@@ -1,4 +1,4 @@
-(ns treeherd.util)
+(ns zookeeper.internal)
 
 (defmacro try*
   "Unwraps the RuntimeExceptions thrown by Clojure, and rethrows its cause. Only accepts a single expression."
