@@ -1,6 +1,8 @@
 (ns zookeeper.data
   (:import (java.nio ByteBuffer)))
 
+(def ^:dynamic *charset* "UTF-8")
+
 (defmacro get-bytes [value size f]
   `(let [bytes# (make-array Byte/TYPE ~size)
           buf# (-> (ByteBuffer/allocateDirect ~size)
@@ -14,7 +16,7 @@
 
 (extend-type String
   ByteConverter
-  (to-bytes [this] (.getBytes this)))
+  (to-bytes [this] (.getBytes this *charset*)))
 
 (extend-type Integer
   ByteConverter
@@ -47,7 +49,7 @@
     (get-bytes c 2 .putChar)))
 
 (defn to-string
-  ([bytes](String. bytes)))
+  ([bytes](String. bytes *charset*)))
 
 (defn to-int
   ([bytes]
