@@ -1,11 +1,16 @@
-# Clojure-ZooKeeper
+# zookeeper-clj
 
 A Clojure DSL for Apache ZooKeeper.
 
 
-## treeherd.zookeeper
+## zookeeper.core
 
-The treeherd.zookeeper namespace contains the ZooKeeper DSL.
+The zookeeper.core primary namespace of the ZooKeeper DSL.
+
+
+## zookeeper.util
+
+The zookeeper.util contains utilities that augment the functionality of the core namespace.
 
 
 ## References
