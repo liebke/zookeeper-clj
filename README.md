@@ -9,7 +9,7 @@ The primary namespace of the ZooKeeper DSL is zookeeper.
 
 ### Examples
 
-To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper>instructions below</a>.
+To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>.
 
 **connect function**
 
@@ -86,7 +86,7 @@ The zookeeper.util contains utilities that augment the functionality of the core
 
 
 ## Running ZooKeeper
-<a name="running-zookeeper">
+<a name="running-zookeeper"></a>
 Here's an example conf file for a standalone instance, by default ZooKeeper will look for it in $ZOOKEEPER_HOME/conf/zoo.cfg
 
     # The number of milliseconds of each tick
