@@ -1,5 +1,6 @@
 (ns zookeeper
   "
+  Zookeeper-clj is a Clojure DSL for Apache ZooKeeper.
   The core functions of ZooKeeper are name service,
   configuration, and group membership, and this
   functionality is provided by this library.
@@ -19,7 +20,7 @@
             [zookeeper.logger :as log]))
 
 
-;; Public DSL
+;; connection functions
 
 (defn connect
   "Returns a ZooKeeper client."
@@ -30,11 +31,12 @@
                                            (when (= (:keeper-state event) :SyncConnected)
                                              (.countDown latch))
                                            (when watcher (watcher event))))
-           zk (ZooKeeper. connection-string timeout-msec session-watcher)]
+           client (ZooKeeper. connection-string timeout-msec session-watcher)]
        (.await latch)
-       zk)))
+       client)))
 
 (defn register-watcher
+  "Registers a default watcher function with this connection."
   ([client watcher]
      (.register client (zi/make-watcher watcher))))
 
@@ -42,6 +44,8 @@
   "Returns current state of client, including :CONNECTING, :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
   ([client]
      (keyword (.toString (.getState client)))))
+
+;; node existence function
 
 (defn exists
   "
@@ -81,6 +85,8 @@
           (do
             (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
             (throw e)))))))
+
+;; node creation functions
 
 (defn create
   " Creates a node, returning either the node's name, or a promise with a result map if the done asynchronously. If an error occurs, create will return false.
@@ -144,6 +150,95 @@
              (log/debug (str "create: KeeperException Thrown: code: " (.code e) ", exception: " e))
              (throw e)))))))
 
+(defn create-all
+  "Create a node and all of its parents. The last node will be ephemeral,
+   and its parents will be persistent. Option, like :persistent? :sequential?,
+   :acl, will only be applied to the last child node.
+
+  Examples:
+  (delete-all client \"/foo\")
+  (create-all client \"/foo/bar/baz\" :persistent? true)
+  (create-all client \"/foo/bar/baz/n-\" :sequential? true)
+
+
+"
+  ([client path & options]
+     (loop [parent "" [child & children] (rest (s/split path #"/"))]
+       (if child
+         (let [node (str parent "/" child)]
+           (if (exists client node)
+             (recur node children)
+             (recur (if (seq children)
+                      (create client node :persistent? true)
+                      (apply create client node options))
+                    children)))
+         parent))))
+
+;; children functions
+
+(defn children
+  "
+  Examples:
+
+    (use 'zookeeper)
+    (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
+
+    (defn callback [result]
+      (println \"got callback result: \" result))
+
+    (delete-all client \"/foo\")
+    (create client \"/foo\" :persistent? true)
+    (repeatedly 5 #(create client \"/foo/child-\" :sequential? true))
+
+    (children client \"/foo\")
+    (def p0 (children client \"/foo\" :async? true))
+    @p0
+    (def p1 (children client \"/foo\" :callback callback))
+    @p1
+    (def p2 (children client \"/foo\" :async? true :watch? true))
+    @p2
+    (def p3 (children client \"/foo\" :async? true :watcher #(println \"watched event: \" %)))
+    @p3
+
+"
+  ([client path & {:keys [watcher watch? async? callback context]
+                   :or {watch? false
+                        async? false
+                        context path}}]
+     (if (or async? callback)
+       (let [prom (promise)]
+         (zi/try*
+           (seq (.getChildren client path
+                              (if watcher (zi/make-watcher watcher) watch?)
+                              (zi/children-callback (zi/promise-callback prom callback)) context))
+           (catch KeeperException e
+             (do
+               (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e))
+               (throw e))))
+         prom)
+       (zi/try*
+        (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
+        (catch org.apache.zookeeper.KeeperException$NoNodeException e
+          (log/debug (str "Tried to list children of a non-existent node: " path))
+          false)
+        (catch KeeperException e
+          (do
+            (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e))
+            (throw e)))))))
+
+;; filtering childrend
+
+(defn filter-children-by-pattern
+  ([client dir pattern]
+     (when-let [children (children client dir)]
+       (filter #(re-find pattern %) children))))
+
+(defn filter-children-by-prefix
+  ([client dir prefix]
+     (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
+
+;; node deletion functions
+
 (defn delete
   "Deletes the given node, if it exists
 
@@ -187,56 +282,6 @@
              (log/debug (str "delete: KeeperException Thrown: code: " (.code e) ", exception: " e))
              (throw e)))))))
 
-(defn children
-  "
-  Examples:
-
-    (use 'zookeeper)
-    (def client (connect \"127.0.0.1:2181\" :watcher #(println \"event received: \" %)))
-
-    (defn callback [result]
-      (println \"got callback result: \" result))
-
-    (delete-all client \"/foo\")
-    (create client \"/foo\" :persistent? true)
-    (repeatedly 5 #(create client \"/foo/child-\" :sequential? true))
-
-    (children client \"/foo\")
-    (def p0 (children client \"/foo\" :async? true))
-    @p0
-    (def p1 (children client \"/foo\" :callback callback))
-    @p1
-    (def p2 (children client \"/foo\" :async? true :watch? true))
-    @p2
-    (def p3 (children client \"/foo\" :async? true :watcher #(println \"watched event: \" %)))
-    @p3
-
-"
-  ([client path & {:keys [watcher watch? async? callback context]
-                   :or {watch? false
-                        async? false
-                        context path}}]
-     (if (or async? callback)
-       (let [prom (promise)]
-         (zi/try*
-           (seq (.getChildren client path
-                              (if watcher (zi/make-watcher watcher) watch?)
-                              (zi/children-callback (zi/promise-callback prom callback)) context))
-           (catch KeeperException e
-             (do
-               (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e  ":= " (.printStackTrace e)))
-               (throw e))))
-         prom)
-       (zi/try*
-        (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e
-          (log/debug (str "Tried to list children of a non-existent node: " path))
-          false)
-        (catch KeeperException e
-          (do
-            (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e  ":= " (.printStackTrace e)))
-            (throw e)))))))
-
 (defn delete-all
   "Deletes a node and all of its children."
   ([client path & options]
@@ -252,29 +297,7 @@
        (doseq [child (if sort? (util/sort-sequential-nodes children) children)]
          (apply delete-all client (str path "/" child) options)))))
 
-(defn create-all
-  "Create a node and all of its parents. The last node will be ephemeral,
-   and its parents will be persistent. Option, like :persistent? :sequential?,
-   :acl, will only be applied to the last child node.
-
-  Examples:
-  (delete-all client \"/foo\")
-  (create-all client \"/foo/bar/baz\" :persistent? true)
-  (create-all client \"/foo/bar/baz/n-\" :sequential? true)
-
-
-"
-  ([client path & options]
-     (loop [parent "" [child & children] (rest (s/split path #"/"))]
-       (if child
-         (let [node (str parent "/" child)]
-           (if (exists client node)
-             (recur node children)
-             (recur (if (seq children)
-                      (create client node :persistent? true)
-                      (apply create client node options))
-                    children)))
-         parent))))
+;; data functions
 
 (defn data
   "Returns byte array of data from given node.
@@ -288,7 +311,7 @@
       (println \"got callback result: \" result))
 
     (delete-all client \"/foo\")
-    (create client \"/foo\" :persistent? true :data (.getBytes \"Hello World\"))
+    (create client \"/foo\" :persistent? true :data (.getBytes \"Hello World\" \"UTF-8\"))
     (def result (data client \"/foo\"))
     (String. (:data result))
     (:stat result)
@@ -301,7 +324,7 @@
     @p1
     (String. (:data @p1))
 
-    (create client \"/foobar\" :persistent? true :data (.getBytes (pr-str {:a 1, :b 2, :c 3})))
+    (create client \"/foobar\" :persistent? true :data (.getBytes (pr-str {:a 1, :b 2, :c 3} \"UTF-8\")))
     (read-string (String. (:data (data client \"/foobar\"))))
 
 "
@@ -342,15 +365,15 @@
     (delete-all client \"/foo\")
     (create client \"/foo\" :persistent? true)
 
-    (set-data client \"/foo\" (.getBytes \"Hello World\") 0)
+    (set-data client \"/foo\" (.getBytes \"Hello World\" \"UTF-8\") 0)
     (String. (:data (data client \"/foo\")))
 
 
-    (def p0 (set-data client \"/foo\" (.getBytes \"New Data\") 0 :async? true))
+    (def p0 (set-data client \"/foo\" (.getBytes \"New Data\" \"UTF-8\") 0 :async? true))
     @p0
     (String. (:data (data client \"/foo\")))
 
-    (def p1 (set-data client \"/foo\" (.getBytes \"Even Newer Data\") 1 :callback callback))
+    (def p1 (set-data client \"/foo\" (.getBytes \"Even Newer Data\" \"UTF-8\") 1 :callback callback))
     @p1
     (String. (:data (data client \"/foo\")))
 
@@ -369,12 +392,11 @@
                (throw e))))
          prom)
        (zi/try*
-         (.setData client path data version)
+         (zi/stat-to-map (.setData client path data version))
          (catch KeeperException e
            (do
              (log/debug (str "set-data: KeeperException Thrown: code: " (.code e) ", exception: " e))
              (throw e)))))))
-
 
 ;; ACL
 
@@ -423,7 +445,7 @@
   "Add auth info to connection."
   ([client scheme auth]
      (zi/try*
-      (.addAuthInfo client scheme (if (string? auth) (.getBytes auth) auth))
+      (.addAuthInfo client scheme (if (string? auth) (.getBytes auth "UTF-8") auth))
       (catch KeeperException e
         (do
           (log/debug (str "add-auth-info: KeeperException Thrown: code: " (.code e) ", exception: " e))
@@ -462,14 +484,5 @@
      (ACL. (apply zi/perm-or zi/perms perm more-perms) (acl-id scheme id-value))))
 
 
-;; filtering
 
-(defn filter-children-by-pattern
-  ([client dir pattern]
-     (when-let [children (children client dir)]
-       (filter #(re-find pattern %) children))))
-
-(defn filter-children-by-prefix
-  ([client dir prefix]
-     (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
 

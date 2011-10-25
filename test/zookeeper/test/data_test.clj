@@ -1,6 +1,6 @@
 (ns zookeeper.test.data_test
-  (:use [zookeeper.data])
-  (:use [clojure.test]))
+  (:use [zookeeper.data]
+        [clojure.test]))
 
 (deftest to-from-bytes
   (is (= "hello" (to-string (to-bytes "hello"))))
