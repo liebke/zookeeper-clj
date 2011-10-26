@@ -1,10 +1,10 @@
 # zookeeper-clj
 
-A Clojure DSL for Apache ZooKeeper.
+Zookeeper-clj is a Clojure DSL for <a href="http://zookeeper.apache.org/">Apache ZooKeeper</a>, which "<i>is a centralized service for maintaining configuration information, naming, providing distributed synchronization, and providing group services.</i>"
 
-The basic functions of <a href="http://zookeeper.apache.org/">ZooKeeper</a> include name service, configuration, and group membership. Higher-level distributed concurrency abstractions can be built on these functions, including distributed locks, queues, barriers, and transaction services as described in <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">"ZooKeeper: Wait-free coordination for Internet-scale systems"</a>. 
+Out of the box ZooKeeper provides name service, configuration, and group membership. From these core services, higher-level distributed concurrency abstractions can be built, including distributed locks, distributed queues, barriers, leader-election, and transaction services as described in <a href="http://zookeeper.apache.org/doc/trunk/recipes.html">ZooKeeper Recipes and Solutions</a> and the paper <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">"ZooKeeper: Wait-free coordination for Internet-scale systems"</a>. 
 
-Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/mazurka">Mazurka</a> library. The goal of Mazurka, in particular, is to build distributed versions of Clojure's Refs, Atoms, and Pods.
+Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/mazurka">Mazurka</a> library. The goal of Mazurka, in particular, is to build distributed versions of Clojure's concurrency primitives, including Refs, Atoms, and Pods.
 
 
 ## Table of Contents
