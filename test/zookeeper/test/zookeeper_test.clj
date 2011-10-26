@@ -75,4 +75,6 @@
                  (children client parent-node)))
     (is (thrown? org.apache.zookeeper.KeeperException$NoAuthException
                  (create client (str parent-node "/" child-node-prefix) :sequential? true)))
-    ))
+
+    ;; close the client
+    (close client)))
