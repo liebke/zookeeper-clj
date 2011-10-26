@@ -2,6 +2,10 @@
 
 A Clojure DSL for Apache ZooKeeper.
 
+The basic functions of <a href="http://zookeeper.apache.org/">ZooKeeper</a> include name service, configuration, and group membership. Higher-level distributed concurrency abstractions can be built on these functions, including distributed locks, queues, barriers, and transaction services as described in <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">"ZooKeeper: Wait-free coordination for Internet-scale systems"</a>. 
+
+Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/mazurka">Mazurka</a> library. The goal of Mazurka, in particular, is to build distributed versions of Clojure's Refs, Atoms, and Pods.
+
 
 ## Getting Started
 
@@ -30,17 +34,17 @@ A watcher function that takes a single event map argument can be passed to conne
     
 if the :watch? flag is set to true when using the exists, children, or data functions, the default watcher function will be triggered under the following circumstances.
 
-* exists: the watch will be triggered by a successful operation that creates/delete the node or sets the data on the node.
-* children: the watch will be triggered by a successful operation that deletes the node of the given path or creates/delete a child under the node.
-* data: the watch will be triggered by a successful operation that sets data on the node, or deletes the node.
+* **exists**: the watch will be triggered by a successful operation that creates/delete the node or sets the data on the node.
+* **children**: the watch will be triggered by a successful operation that deletes the node of the given path or creates/delete a child under the node.
+* **data**: the watch will be triggered by a successful operation that sets data on the node, or deletes the node.
 
 The default watcher function can be overriden with a custom function by passing it as the :watcher argument to the exists, children, or data functions.
 
 The argument to the watcher function is a map with three keys: :event-type, :keeper-state, and :path.
 
-* event-type: :NodeDeleted, :NodeDataChanged, :NodeCreated, :NodeChildrenChanged, :None
-* keeper-state: :AuthFailed, :Unknown, :SyncConnected, :Disconnected, :Expired, :NoSyncConnected
-* path: the path the node in question, may be nil
+* **event-type**: :NodeDeleted, :NodeDataChanged, :NodeCreated, :NodeChildrenChanged, :None
+* **keeper-state**: :AuthFailed, :Unknown, :SyncConnected, :Disconnected, :Expired, :NoSyncConnected
+* **path**: the path the node in question, may be nil
 
 NOTE: Watches are one time triggers; if you get a watch event and you want to get notified of future changes, you must set another watch.
 
@@ -207,30 +211,30 @@ The folllowing permissions are supported:
 
 Below are examples of each ACL scheme.
 
-    (acl "world" "anyone" :read :create :delete :admin :write)
-    (acl "ip" "127.0.0.1" :read :create :delete :admin :write)
-    (acl "host" "thinkrelevance.com" :admin :read :write :delete :create)
-    (acl "auth" "" :read :create :delete :admin :write)
+    (zk/acl "world" "anyone" :read :create :delete :admin :write)
+    (zk/acl "ip" "127.0.0.1" :read :create :delete :admin :write)
+    (zk/acl "host" "thinkrelevance.com" :admin :read :write :delete :create)
+    (zk/acl "auth" "" :read :create :delete :admin :write)
 
 There are five convenience functions for creating ACLs of each scheme, world-acl, auth-acl, digest-acl, host-acl, and ip-acl.
 
 
-    (world-acl :read :delete :write)
+    (zk/world-acl :read :delete :write)
     
 When no permissions are provided, the following are used by default: :read, :create, :delete, :write -- but not :admin.
     
-    (ip-acl "127.0.0.1")
-    (digest-acl "david:secret" :read :delete :write)
-    (host-acl "thinkrelevance.com" :read :delete :write)
-    (auth-acl :read :delete :write)
+    (zk/ip-acl "127.0.0.1")
+    (zk/digest-acl "david:secret" :read :delete :write)
+    (zk/host-acl "thinkrelevance.com" :read :delete :write)
+    (zk/auth-acl :read :delete :write)
 
 A list of ACLs can be passed as an option to the create function.
 
-    (create client "/protected-node" :acl [(auth-acl :admin :create :read :delete :write)])
+    (zk/create client "/protected-node" :acl [(zk/auth-acl :admin :create :read :delete :write)])
     
 In the above example, only the user that created the node has permissions on it. In order to authenticate a user, authentication info must be added to a client connection with the add-auth-info function.
 
-    (add-auth-info client "digest" "david:secret")
+    (zk/add-auth-info client "digest" "david:secret")
 
 If an unauthorized client tries to access the node, a org.apache.zookeeper.KeeperException$NoAuthException exception will be thrown.
     

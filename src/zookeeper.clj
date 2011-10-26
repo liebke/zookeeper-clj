@@ -1,7 +1,7 @@
 (ns zookeeper
   "
   Zookeeper-clj is a Clojure DSL for Apache ZooKeeper.
-  The core functions of ZooKeeper are name service,
+  The core functionalities of ZooKeeper are name service,
   configuration, and group membership, and this
   functionality is provided by this library.
 
