@@ -35,6 +35,8 @@
        (.await latch)
        client)))
 
+(defn close ([client] (.close client)))
+
 (defn register-watcher
   "Registers a default watcher function with this connection."
   ([client watcher]
@@ -201,7 +203,7 @@
     @p3
 
 "
-  ([client path & {:keys [watcher watch? async? callback context]
+  ([client path & {:keys [watcher watch? async? callback context sort?]
                    :or {watch? false
                         async? false
                         context path}}]
@@ -483,6 +485,25 @@
   ([scheme id-value perm & more-perms]
      (ACL. (apply zi/perm-or zi/perms perm more-perms) (acl-id scheme id-value))))
 
+(def default-perms [:read :write :create :delete])
 
+(defn world-acl
+  ([& perms]
+     (apply acl "world" "anyone" (or perms default-perms))))
 
+(defn ip-acl
+  ([ip-address & perms]
+     (apply acl "ip" ip-address (or perms default-perms))))
+
+(defn host-acl
+  ([host-suffix & perms]
+     (apply acl "host" host-suffix (or perms default-perms))))
+
+(defn auth-acl
+  ([& perms]
+     (apply acl "auth" "" (or perms default-perms))))
+
+(defn digest-acl
+  ([username password & perms]
+     (apply acl "digest" (str username ":" password) (or perms default-perms))))
 
