@@ -26,7 +26,7 @@ Building these distributed concurrency abstractions is the goal of the Java-base
 * <a href="#ref">References</a>
 
 
-<a name="getting-started></a>
+<a name="getting-started"></a>
 ## Getting Started
 
 To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>.
@@ -281,12 +281,12 @@ After creating and customizing the conf file, start ZooKeeper
     $ZOOKEEPER_HOME/bin/zkServer.sh start
 
 
-* <a name="testing"></a>
+<a name="testing"></a>
 ## Testing
 
 Before running 'lein test' you need to start a local instance of ZooKeeper on port 2181.
 
-* <a name="ref"></a>
+<a name="ref"></a>
 ## References
 
 * ZooKeeper http://zookeeper.apache.org/
