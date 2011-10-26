@@ -7,11 +7,31 @@ The basic functions of <a href="http://zookeeper.apache.org/">ZooKeeper</a> incl
 Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/mazurka">Mazurka</a> library. The goal of Mazurka, in particular, is to build distributed versions of Clojure's Refs, Atoms, and Pods.
 
 
+## Table of Contents
+
+* <a href="#getting-started">Getting Started</a>
+  * <a href="#connect">connect functions</a>
+  * <a href="#watchers">watchers</a>
+  * <a href="#create">create function</a>
+  * <a href="#async">asynchronous calls</a>
+  * <a href="#exists">exists function</a>
+  * <a href="#children">children function</a>
+  * <a href="#seq">sequential nodes</a>
+  * <a href="#data">data functions</a>
+  * <a href="#serialization">data serializationa</a>
+  * <a href="#delete">delete functions</a>
+  * <a href="#acl">acl functions</a>
+* <a href="#running-zookeeper">Running ZooKeeper</a>
+* <a href="#testing">Testing</a>
+* <a href="#ref">References</a>
+
+
+<a name="getting-started></a>
 ## Getting Started
 
 To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>.
 
-
+<a name="connect"></a>
 ### connect function
 
 First require the zookeeper namespace and create a client with the connect function.
@@ -25,7 +45,7 @@ The connection to the ZooKeeper server can be close with the close function.
 
     (zk/close client)
     
-
+<a name="watchers"></a>
 ### watchers
 
 A watcher function that takes a single event map argument can be passed to connect, which will be invoked as a result of changes of keeper-state, or as a result of other events. 
@@ -48,6 +68,7 @@ The argument to the watcher function is a map with three keys: :event-type, :kee
 
 NOTE: Watches are one time triggers; if you get a watch event and you want to get notified of future changes, you must set another watch.
 
+<a name="create"></a>
 ### create function
 
 Next, create a node called "/parent-node"
@@ -59,7 +80,7 @@ Setting the :persistent? flag to true creates a persistent node, meaning one tha
 
 A node must be persistent if you want it to have child nodes.
 
-
+<a name="async"></a>
 ### asynchronous calls
 
 Most of the zookeeper functions can be called asynchronously by setting the :async? option to true, or by providing an explicit callback function with the :callback option. When invoked asynchronously, each function will return a promise that will eventually contain the result of the call (a map with the following keys: :return-code, :path, :context, :name).
@@ -74,7 +95,7 @@ If a :callback function is passed, the promise will be returned with the result 
 
     (def result-promise (zk/create client "/parent-node" :persistent? true :callback (fn [result] (println result))))
 
-
+<a name="exists"></a>
 ### exists function
 
 We can check the existence of the newly created node with the exists function.
@@ -85,7 +106,7 @@ The exists function returns nil if the node does not exist, and returns a map wi
 
 The exists function accepts the :watch?, :watcher, :async?, and :callback options. The watch functions will be triggered by a successful operation that creates/delete the node or sets the data on the node.
 
-
+<a name="children"></a>
 ### children function
 
 Next, create a child node for "/parent-node"
@@ -104,7 +125,7 @@ If the node has no children, nil will be returned, and if the node doesn't exist
 
 The children function accepts the :watch?, :watcher, :async?, and :callback options. The watch function will be triggered by a successful operation that deletes the node of the given path or creates/delete a child under the node.
 
-
+<a name="seq"></a>
 ### sequential nodes
 
 If the :sequential? option is set to true when a node is created, a ten digit sequential ID is appended to the name of the node (it's idiomatic to include a dash as the last character of a sequential node's name).
@@ -134,14 +155,14 @@ The order of the child nodes return from children is arbitrary, but the nodes ca
     (util/sort-sequential-nodes (zk/children client "/parent"))
     ;; => ("child-0000000000" "child-0000000001" "child-0000000002")
 
-
+<a name="data"></a>
 ### data functions
 
 Each node has a data field that can hold a byte array, which is limited to 1M is size. 
 
 The set-data function is used to insert data. The set-data function takes a version number, which needs to match the current data version. The current version is a field in the map returned by the exists function.
 
-    (dev version (:version (zk/exists client "/parent")))
+    (def version (:version (zk/exists client "/parent")))
 
     (zk/set-data client "/parent" (.getBytes "hello world" "UTF-8") version)
     
@@ -157,7 +178,7 @@ The data function returns a map with two fields, :data and :stat. The :stat valu
 
 The data function accepts the :watch?, :watcher, :async?, and :callback options. The watch function will be triggered by a successful operation that sets data on the node, or deletes the node.
 
-
+<a name="serialization"></a>
 ### data serialization
 
 The zookeeper.data namespace contains functions for serializing different primitive types to and from byte arrays.
@@ -175,7 +196,7 @@ Clojure forms can be written to and read from the data field using pr-str and re
     (read-string (data/to-string (:data (zk/data client "/parent"))))
     ;; => {:a 1, :b 2, :c 3}
 
-
+<a name="delete"></a>
 ### delete functions
 
 Nodes can be deleted with the delete function.
@@ -190,7 +211,7 @@ Nodes that have children cannot be deleted. Two convenience functions, delete-ch
 
     (delete-all client "/parent")
 
-
+<a name="acl"></a>
 ### ACL functions
 
 The acl function takes a scheme, id value, and a set of permissions. The following schemes are built in.
@@ -260,11 +281,12 @@ After creating and customizing the conf file, start ZooKeeper
     $ZOOKEEPER_HOME/bin/zkServer.sh start
 
 
+* <a name="testing"></a>
 ## Testing
 
 Before running 'lein test' you need to start a local instance of ZooKeeper on port 2181.
 
-
+* <a name="ref"></a>
 ## References
 
 * ZooKeeper http://zookeeper.apache.org/
