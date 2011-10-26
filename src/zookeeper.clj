@@ -1,9 +1,8 @@
 (ns zookeeper
   "
-  Zookeeper-clj is a Clojure DSL for Apache ZooKeeper.
-  The core functionalities of ZooKeeper are name service,
-  configuration, and group membership, and this
-  functionality is provided by this library.
+    Zookeeper-clj is a Clojure DSL for <a href=\"http://zookeeper.apache.org/\">Apache ZooKeeper</a>, which \"<i>is a centralized service for maintaining configuration information, naming, providing distributed synchronization, and providing group services.</i>\"
+
+Out of the box ZooKeeper provides name service, configuration, and group membership. From these core services, higher-level distributed concurrency abstractions can be built, including distributed locks, distributed queues, barriers, leader-election, and transaction services as described in <a href=\"http://zookeeper.apache.org/doc/trunk/recipes.html\">ZooKeeper Recipes and Solutions</a> and the paper <a href=\"http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf\">\"ZooKeeper: Wait-free coordination for Internet-scale systems\"</a>.
 
   See examples:
 
@@ -35,7 +34,9 @@
        (.await latch)
        client)))
 
-(defn close ([client] (.close client)))
+(defn close
+  "Closes the connection to the ZooKeeper server."
+  ([client] (.close client)))
 
 (defn register-watcher
   "Registers a default watcher function with this connection."
@@ -43,18 +44,22 @@
      (.register client (zi/make-watcher watcher))))
 
 (defn state
-  "Returns current state of client, including :CONNECTING, :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
+  "Returns current state of client, including :CONNECTING,
+   :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
   ([client]
      (keyword (.toString (.getState client)))))
 
 ;; node existence function
 
 (defn exists
-  "
+  "Returns the status of the given node, and nil
+   if the node does not exist.
+
   Examples:
 
     (use 'zookeeper)
-    (def client (connect \"127.0.0.1:2181\" :wacher #(println \"event received: \" %)))
+    (def client (connect \"127.0.0.1:2181\"
+                         :wacher #(println \"event received: \" %)))
 
     (defn callback [result]
       (println \"got callback result: \" result))
@@ -91,7 +96,10 @@
 ;; node creation functions
 
 (defn create
-  " Creates a node, returning either the node's name, or a promise with a result map if the done asynchronously. If an error occurs, create will return false.
+  " Creates a node, returning either the node's name, or a promise
+    with a result map if either the :async? option is true or if a
+    :callback function is provided. If the node already exists,
+    create will return false.
 
   Options:
 
@@ -99,8 +107,11 @@
     :sequential? indicates if the node should be sequential
     :data data to associate with the node
     :acl access control, see the acls map
-    :async? indicates that the create should occur asynchronously, a promise will be returned
-    :callback indicates that the create should occur asynchronously and that this function should be called when it does, a promise will also be returned
+    :async? indicates that the create should occur asynchronously,
+            a promise will be returned
+    :callback indicates that the create should occur asynchronously
+              and that this function should be called when it does,
+              a promise will also be returned
 
 
   Example:
@@ -179,7 +190,8 @@
 ;; children functions
 
 (defn children
-  "
+  "Returns a sequence of child node name for the given node, nil if it has no children and false if the node does not exist.
+
   Examples:
 
     (use 'zookeeper)
@@ -231,11 +243,13 @@
 ;; filtering childrend
 
 (defn filter-children-by-pattern
+  "Returns a sequence of child node names filtered by the given regex pattern."
   ([client dir pattern]
      (when-let [children (children client dir)]
        (filter #(re-find pattern %) children))))
 
 (defn filter-children-by-prefix
+  "Returns a sequence of child node names that start with the given prefix."
   ([client dir prefix]
      (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
 
@@ -302,7 +316,7 @@
 ;; data functions
 
 (defn data
-  "Returns byte array of data from given node.
+  "Returns a map with two fields, :data and :stat. The :stat field is the same map returned by the exists function, the :data field is a byte array of data from the given node.
 
   Examples:
 
@@ -354,7 +368,7 @@
          :stat (zi/stat-to-map stat)}))))
 
 (defn set-data
-  "
+  "Sets the value of the data field of the given node.
 
   Examples:
 
@@ -403,7 +417,8 @@
 ;; ACL
 
 (defn get-acl
- "
+  "Returns a sequence of ACLs associated with the given node.
+
   Examples:
 
     (use 'zookeeper)
@@ -454,11 +469,13 @@
           (throw e))))))
 
 (defn acl-id
+  "Returns an ACL Id object with the given scheme and ID value."
   ([scheme id-value]
      (Id. scheme id-value)))
 
 (defn acl
-  "
+  "Creates an ACL object.
+
   Examples:
 
     (use 'zookeeper)
@@ -488,22 +505,27 @@
 (def default-perms [:read :write :create :delete])
 
 (defn world-acl
+  "Creates an instance of an ACL using the world scheme."
   ([& perms]
      (apply acl "world" "anyone" (or perms default-perms))))
 
 (defn ip-acl
+  "Creats an instance of an ACL using the IP scheme."
   ([ip-address & perms]
      (apply acl "ip" ip-address (or perms default-perms))))
 
 (defn host-acl
+  "Creates an instance of an ACL using the host scheme."
   ([host-suffix & perms]
      (apply acl "host" host-suffix (or perms default-perms))))
 
 (defn auth-acl
+  "Creats an instance of an ACL using the auth scheme."
   ([& perms]
      (apply acl "auth" "" (or perms default-perms))))
 
 (defn digest-acl
+  "Creates an instance of an ACL using the digest scheme."
   ([username password & perms]
      (apply acl "digest" (str username ":" password) (or perms default-perms))))
 
