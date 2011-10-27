@@ -21,6 +21,7 @@ Building these distributed concurrency abstractions is the goal of the Java-base
   * <a href="#serialization">data serializationa</a>
   * <a href="#delete">delete functions</a>
   * <a href="#acl">acl functions</a>
+* <a href="#barrier">Barrier Example</a>
 * <a href="#running-zookeeper">Running ZooKeeper</a>
 * <a href="#testing">Testing</a>
 * <a href="#ref">References</a>
@@ -258,7 +259,109 @@ In the above example, only the user that created the node has permissions on it.
     (zk/add-auth-info client "digest" "david:secret")
 
 If an unauthorized client tries to access the node, a org.apache.zookeeper.KeeperException$NoAuthException exception will be thrown.
-    
+
+
+<a name="barrier"></a>
+## Barrier Example
+
+Distributed systems use barriers to block processing of a set of nodes until a condition is met at which time all the nodes are allowed to proceed.
+
+The following is the implementation of a barrier found in the <a href="https://github.com/liebke/mazurka">Mazurka Library</a> based on the algorithms from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a>. 
+
+    (require '[zookeeper :as zk])
+    (import '(java.net InetAddress))
+
+    (defn enter-barrier
+      ([client n f & {:keys [barrier-node proc-name double-barrier?]
+                      :or {barrier-node "/barrier"
+                           proc-name (.getCanonicalHostName (InetAddress/getLocalHost))
+                           double-barrier? true}}]
+        (let [mutex (Object.)
+              watcher (fn [event] (locking mutex (.notify mutex)))]
+          (locking mutex
+            (zk/create-all client (str barrier-node "/" proc-name))
+            (if (>= (count (zk/children client barrier-node)) n)
+              (zk/create client (str barrier-node "/ready") :async? true)
+              (do (zk/exists client (str barrier-node "/ready") :watcher watcher :async? true)
+                (.wait mutex)))
+            (let [results (f)]
+              (if double-barrier?
+                (exit-barrier client :barrier-node barrier-node :proc-name proc-name)
+                (zk/delete-all client barrier-node))
+              results)))))
+
+
+If the :double-barrier? option is set to true, then the process blocks until all the other processes have completed.
+
+
+    (defn exit-barrier
+      ([client & {:keys [barrier-node proc-name]
+                  :or {barrier-node "/barrier"
+                       proc-name (.getCanonicalHostName (InetAddress/getLocalHost))}}]
+        (let [mutex (Object.)
+              watcher (fn [event] (locking mutex (.notify mutex)))]
+          (zk/delete client (str barrier-node "/ready"))
+          (locking mutex
+            (loop []
+              (when-let [children (seq (sort (or (zk/children client barrier-node) nil)))]
+                (cond
+                  ;; the last node deletes itself and the barrier node, letting all the processes exit
+                  (= (count children) 1)
+                    (zk/delete-all client barrier-node)
+                  ;; first node watches the second, waiting for it to be deleted
+                  (= proc-name (first children))
+                    (do (when (zk/exists client
+                                         (str barrier-node "/" (second children))
+                                         :watcher watcher)
+                          (.wait mutex))
+                        (recur))
+                  ;; rest of the nodes delete their own node, and then watch the
+                  ;; first node, waiting for it to be deleted
+                  :else
+                    (do (zk/delete client (str barrier-node "/" proc-name))
+                        (when (zk/exists client
+                                         (str barrier-node "/" (first children))
+                                         :watcher watcher)
+                          (.wait mutex))
+                        (recur)))))))))
+
+
+Examples:
+
+    (use 'zookeeper)
+    (use 'mazurka.barrier)
+    (def client (client \"127.0.0.1:2181\"))
+
+    (enter-barrier client 2 #(println \"First process is running\"))
+
+    ;; From another REPL, execute the following
+
+    (use 'zookeeper)
+    (use 'mazurka.barrier)
+    (def client (client \"127.0.0.1:2181\"))
+
+    (enter-barrier client 2 #(println \"Second process is running\") :proc-name \"node2\")
+
+
+
+   
+### Example Usage
+
+    (use 'zookeeper)
+    (use 'mazurka.barrier)
+    (def client (client \"127.0.0.1:2181\"))
+
+    (enter-barrier client 2 #(println \"First process is running\"))
+
+From another REPL, execute the following
+
+    (use 'zookeeper)
+    (use 'mazurka.barrier)
+    (def client (client \"127.0.0.1:2181\"))
+
+    (enter-barrier client 2 #(println \"Second process is running\") :proc-name \"node2\")
+
+
 
 
 <a name="running-zookeeper"></a>
@@ -289,8 +392,12 @@ Before running 'lein test' you need to start a local instance of ZooKeeper on po
 <a name="ref"></a>
 ## References
 
-* ZooKeeper http://zookeeper.apache.org/
-* ZooKeeper: Wait-free coordination for Internet-scale systems http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf
+* <a href=" http://zookeeper.apache.org/">ZooKeeper website</a>
+* <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">ZooKeeper: Wait-free coordination for Internet-scale systems</a>
+* <a href="http://zookeeper.apache.org/doc/trunk/recipes.html">ZooKeeper Recipes and Solutions</a>
+* <a href="https://github.com/openUtility/menagerie">Menagerie Library</a>
+* <a href="https://github.com/liebke/mazurka">Mazurka Library</a>
+
 
 ## License
 
