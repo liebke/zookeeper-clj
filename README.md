@@ -266,7 +266,7 @@ If an unauthorized client tries to access the node, a org.apache.zookeeper.Keepe
 
 Distributed systems use barriers to block processing of a set of nodes until a condition is met at which time all the nodes are allowed to proceed.
 
-The following is the implementation of a barrier found in the <a href="https://github.com/liebke/mazurka">Mazurka Library</a> based on the algorithms from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a>. 
+The following is an implementation of a double barrier, <a href="https://github.com/liebke/mazurka/blob/master/src/mazurka/barrier.clj">mazurka.barrier</a>, found in the <a href="https://github.com/liebke/mazurka">Mazurka Library</a> based on the algorithm from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a> page. 
 
     (require '[zookeeper :as zk])
     (import '(java.net InetAddress))
@@ -291,7 +291,7 @@ The following is the implementation of a barrier found in the <a href="https://g
               results)))))
 
 
-If the :double-barrier? option is set to true, then the process blocks until all the other processes have completed.
+If the :double-barrier? option is set to true, then the exit-barrier is called which blocks until all the processes have completed.
 
 
     (defn exit-barrier
@@ -373,7 +373,10 @@ Before running 'lein test' you need to start a local instance of ZooKeeper on po
 <a name="ref"></a>
 ## References
 
-* <a href=" http://zookeeper.apache.org/">ZooKeeper website</a>
+* <a href=" http://zookeeper.apache.org/">ZooKeeper Website</a>
+* <a href="http://zookeeper.apache.org/doc/r3.3.3/zookeeperProgrammers.html">ZooKeeper Programming Guide</a>
+* <a href="http://zookeeper.apache.org/doc/r3.3.3/api/index.html">ZooKeeper 3.3.3 API</a>
+* <a href="http://wiki.apache.org/hadoop/ZooKeeper/Tutorial">ZooKeeper Tutorial</a>
 * <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">ZooKeeper: Wait-free coordination for Internet-scale systems</a>
 * <a href="http://zookeeper.apache.org/doc/trunk/recipes.html">ZooKeeper Recipes and Solutions</a>
 * <a href="https://github.com/openUtility/menagerie">Menagerie Library</a>
