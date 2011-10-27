@@ -76,22 +76,23 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                    :or {watch? false
                         async? false
                         context path}}]
-     (if (or async? callback)
-       (let [prom (promise)]
+     (when path
+       (if (or async? callback)
+         (let [prom (promise)]
+           (zi/try*
+            (.exists client path (if watcher (zi/make-watcher watcher) watch?)
+                     (zi/stat-callback (zi/promise-callback prom callback)) context)
+            (catch KeeperException e
+              (do
+                (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
+                (throw e))))
+           prom)
          (zi/try*
-          (.exists client path (if watcher (zi/make-watcher watcher) watch?)
-                   (zi/stat-callback (zi/promise-callback prom callback)) context)
+          (zi/stat-to-map (.exists client path (if watcher (zi/make-watcher watcher) watch?)))
           (catch KeeperException e
             (do
               (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
-              (throw e))))
-         prom)
-       (zi/try*
-        (zi/stat-to-map (.exists client path (if watcher (zi/make-watcher watcher) watch?)))
-        (catch KeeperException e
-          (do
-            (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
-            (throw e)))))))
+              (throw e))))))))
 
 ;; node creation functions
 
@@ -157,7 +158,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                   (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
          (catch org.apache.zookeeper.KeeperException$NodeExistsException e
            (log/debug (str "Tried to create an existing node: " path))
-           false)
+           path)
          (catch KeeperException e
            (do
              (log/debug (str "create: KeeperException Thrown: code: " (.code e) ", exception: " e))
@@ -176,16 +177,17 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([client path & options]
-     (loop [parent "" [child & children] (rest (s/split path #"/"))]
-       (if child
-         (let [node (str parent "/" child)]
-           (if (exists client node)
-             (recur node children)
-             (recur (if (seq children)
-                      (create client node :persistent? true)
-                      (apply create client node options))
-                    children)))
-         parent))))
+     (when path
+       (loop [result-path "" [dir & children] (rest (s/split path #"/"))]
+         (if dir
+           (let [node (str result-path "/" dir)]
+             (if (exists client node)
+               (recur node children)
+               (recur (if (seq children)
+                        (create client node :persistent? true)
+                        (apply create client node options))
+                      children)))
+           result-path)))))
 
 ;; children functions
 
