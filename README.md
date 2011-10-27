@@ -10,7 +10,7 @@ Building these distributed concurrency abstractions is the goal of the Java-base
 ## Table of Contents
 
 * <a href="#getting-started">Getting Started</a>
-  * <a href="#connect">connect functions</a>
+  * <a href="#connect">connect function</a>
   * <a href="#watchers">watchers</a>
   * <a href="#create">create function</a>
   * <a href="#async">asynchronous calls</a>
@@ -18,9 +18,9 @@ Building these distributed concurrency abstractions is the goal of the Java-base
   * <a href="#children">children function</a>
   * <a href="#seq">sequential nodes</a>
   * <a href="#data">data functions</a>
-  * <a href="#serialization">data serializationa</a>
+  * <a href="#serialization">data serialization</a>
   * <a href="#delete">delete functions</a>
-  * <a href="#acl">acl functions</a>
+  * <a href="#acl">acl function</a>
 * <a href="#barrier">Barrier Example</a>
 * <a href="#running-zookeeper">Running ZooKeeper</a>
 * <a href="#testing">Testing</a>
@@ -291,7 +291,7 @@ The following is an implementation of a double barrier, <a href="https://github.
               results)))))
 
 
-If the :double-barrier? option is set to true, then the exit-barrier is called which blocks until all the processes have completed.
+If the :double-barrier? option is set to true, then exit-barrier is called which blocks until all the processes have completed.
 
 
     (defn exit-barrier
@@ -334,7 +334,7 @@ If the :double-barrier? option is set to true, then the exit-barrier is called w
 
     (enter-barrier client 2 #(println \"First process is running\"))
 
-From another REPL, execute the following
+The call to enter-barrier will block until there are N=2 processes in the barrier. From another REPL, execute the following, and then both processes will run and exit the barrier.
 
     (use 'zookeeper)
     (use 'mazurka.barrier)
