@@ -15,8 +15,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
            (java.util.concurrent CountDownLatch))
   (:require [clojure.string :as s]
             [zookeeper.internal :as zi]
-            [zookeeper.util :as util]
-            [zookeeper.logger :as log]))
+            [zookeeper.util :as util]))
 
 
 ;; connection functions
@@ -82,17 +81,11 @@ Out of the box ZooKeeper provides name service, configuration, and group members
            (zi/try*
             (.exists client path (if watcher (zi/make-watcher watcher) watch?)
                      (zi/stat-callback (zi/promise-callback prom callback)) context)
-            (catch KeeperException e
-              (do
-                (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
-                (throw e))))
+            (catch KeeperException e (throw e)))
            prom)
          (zi/try*
           (zi/stat-to-map (.exists client path (if watcher (zi/make-watcher watcher) watch?)))
-          (catch KeeperException e
-            (do
-              (log/debug (str "exists: KeeperException Thrown: code: " (.code e) ", exception: " e))
-              (throw e))))))))
+          (catch KeeperException e (throw e)))))))
 
 ;; node creation functions
 
@@ -148,21 +141,14 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                     (zi/create-modes {:persistent? persistent?, :sequential? sequential?})
                     (zi/string-callback (zi/promise-callback prom callback))
                     context)
-           (catch KeeperException e
-             (do
-               (log/debug (str "create: KeeperException Thrown: code: " (.code e) ", exception: " e))
-               (throw e))))
+           (catch KeeperException e (throw e)))
          prom)
        (zi/try*
          (.create client path data acl
                   (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
          (catch org.apache.zookeeper.KeeperException$NodeExistsException e
-           (log/debug (str "Tried to create an existing node: " path))
            path)
-         (catch KeeperException e
-           (do
-             (log/debug (str "create: KeeperException Thrown: code: " (.code e) ", exception: " e))
-             (throw e)))))))
+         (catch KeeperException e (throw e))))))
 
 (defn create-all
   "Create a node and all of its parents. The last node will be ephemeral,
@@ -227,20 +213,12 @@ Out of the box ZooKeeper provides name service, configuration, and group members
            (seq (.getChildren client path
                               (if watcher (zi/make-watcher watcher) watch?)
                               (zi/children-callback (zi/promise-callback prom callback)) context))
-           (catch KeeperException e
-             (do
-               (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e))
-               (throw e))))
+           (catch KeeperException e (throw e)))
          prom)
        (zi/try*
         (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e
-          (log/debug (str "Tried to list children of a non-existent node: " path))
-          false)
-        (catch KeeperException e
-          (do
-            (log/debug (str "children: KeeperException Thrown: code: " (.code e) ", exception: " e))
-            (throw e)))))))
+        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch KeeperException e (throw e))))))
 
 ;; filtering childrend
 
@@ -283,22 +261,14 @@ Out of the box ZooKeeper provides name service, configuration, and group members
        (let [prom (promise)]
          (zi/try*
            (.delete client path version (zi/void-callback (zi/promise-callback prom callback)) context)
-           (catch KeeperException e
-             (do
-               (log/debug (str "delete: KeeperException Thrown: code: " (.code e) ", exception: " e))
-               (throw e))))
+           (catch KeeperException e (throw e)))
          prom)
        (zi/try*
          (do
            (.delete client path version)
            true)
-         (catch org.apache.zookeeper.KeeperException$NoNodeException e
-           (log/debug (str "Tried to delete a non-existent node: " path))
-           false)
-         (catch KeeperException e
-           (do
-             (log/debug (str "delete: KeeperException Thrown: code: " (.code e) ", exception: " e))
-             (throw e)))))))
+         (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+         (catch KeeperException e (throw e))))))
 
 (defn delete-all
   "Deletes a node and all of its children."
@@ -356,17 +326,11 @@ Out of the box ZooKeeper provides name service, configuration, and group members
           (zi/try*
            (.getData client path (if watcher (zi/make-watcher watcher) watch?)
                      (zi/data-callback (zi/promise-callback prom callback)) context)
-           (catch KeeperException e
-             (do
-               (log/debug (str "data: KeeperException Thrown: code: " (.code e) ", exception: " e))
-               (throw e))))
+           (catch KeeperException e (throw e)))
           prom)
         {:data (zi/try*
                 (.getData client path (if watcher (zi/make-watcher watcher) watch?) stat)
-                (catch KeeperException e
-                  (do
-                    (log/debug (str "data: KeeperException Thrown: code: " (.code e) ", exception: " e))
-                    (throw e))))
+                (catch KeeperException e (throw e)))
          :stat (zi/stat-to-map stat)}))))
 
 (defn set-data
@@ -404,17 +368,11 @@ Out of the box ZooKeeper provides name service, configuration, and group members
          (zi/try*
            (.setData client path data version
                      (zi/stat-callback (zi/promise-callback prom callback)) context)
-           (catch KeeperException e
-             (do
-               (log/debug (str "set-data: KeeperException Thrown: code: " (.code e) ", exception: " e))
-               (throw e))))
+           (catch KeeperException e (throw e)))
          prom)
        (zi/try*
          (zi/stat-to-map (.setData client path data version))
-         (catch KeeperException e
-           (do
-             (log/debug (str "set-data: KeeperException Thrown: code: " (.code e) ", exception: " e))
-             (throw e)))))))
+         (catch KeeperException e (throw e))))))
 
 ;; ACL
 
@@ -447,17 +405,11 @@ Out of the box ZooKeeper provides name service, configuration, and group members
          (let [prom (promise)]
            (zi/try*
              (.getACL client path stat (zi/acl-callback (zi/promise-callback prom callback)) context)
-             (catch KeeperException e
-               (do
-                 (log/debug (str "get-acl: KeeperException Thrown: code: " (.code e) ", exception: " e))
-                 (throw e))))
+             (catch KeeperException e (throw e)))
          prom)
          {:acl (zi/try*
                 (seq (.getACL client path stat))
-                (catch KeeperException e
-                  (do
-                    (log/debug (str "get-acl: KeeperException Thrown: code: " (.code e) ", exception: " e))
-                    (throw e))))
+                (catch KeeperException e (throw e)))
           :stat (zi/stat-to-map stat)}))))
 
 (defn add-auth-info
@@ -465,10 +417,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   ([client scheme auth]
      (zi/try*
       (.addAuthInfo client scheme (if (string? auth) (.getBytes auth "UTF-8") auth))
-      (catch KeeperException e
-        (do
-          (log/debug (str "add-auth-info: KeeperException Thrown: code: " (.code e) ", exception: " e))
-          (throw e))))))
+      (catch KeeperException e (throw e)))))
 
 (defn acl-id
   "Returns an ACL Id object with the given scheme and ID value."
