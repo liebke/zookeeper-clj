@@ -326,25 +326,6 @@ If the :double-barrier? option is set to true, then the process blocks until all
                         (recur)))))))))
 
 
-Examples:
-
-    (use 'zookeeper)
-    (use 'mazurka.barrier)
-    (def client (client \"127.0.0.1:2181\"))
-
-    (enter-barrier client 2 #(println \"First process is running\"))
-
-    ;; From another REPL, execute the following
-
-    (use 'zookeeper)
-    (use 'mazurka.barrier)
-    (def client (client \"127.0.0.1:2181\"))
-
-    (enter-barrier client 2 #(println \"Second process is running\") :proc-name \"node2\")
-
-
-
-   
 ### Example Usage
 
     (use 'zookeeper)
