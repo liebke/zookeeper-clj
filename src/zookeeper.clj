@@ -226,7 +226,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   "Returns a sequence of child node names filtered by the given regex pattern."
   ([client dir pattern]
      (when-let [children (children client dir)]
-       (filter #(re-find pattern %) children))))
+       (util/filter-nodes-by-pattern pattern children))))
 
 (defn filter-children-by-prefix
   "Returns a sequence of child node names that start with the given prefix."

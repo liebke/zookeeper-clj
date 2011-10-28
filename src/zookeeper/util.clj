@@ -22,6 +22,14 @@
   ([unsorted-nodes]
      (map second (sort-by first (index-sequential-nodes unsorted-nodes)))))
 
+(defn filter-nodes-by-pattern
+  ([pattern nodes]
+     (filter #(re-find pattern %) nodes)))
+
+(defn filter-nodes-by-prefix
+  ([prefix nodes]
+     (filter-nodes-by-pattern (re-pattern (str "^" prefix)) nodes)))
+
 (defn hash-password
   " Returns a base64 encoded string of a SHA-1 digest of the given password string.
 
