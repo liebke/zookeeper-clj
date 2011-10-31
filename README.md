@@ -4,7 +4,7 @@ Zookeeper-clj is a Clojure DSL for <a href="http://zookeeper.apache.org/">Apache
 
 Out of the box ZooKeeper provides name service, configuration, and group membership. From these core services, higher-level distributed concurrency abstractions can be built, including distributed locks, distributed queues, barriers, leader-election, and transaction services as described in <a href="http://zookeeper.apache.org/doc/trunk/recipes.html">ZooKeeper Recipes and Solutions</a> and the paper <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">"ZooKeeper: Wait-free coordination for Internet-scale systems"</a>. 
 
-Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/maneuver">Maneuver</a> library. The goal of Maneuver, in particular, is to build distributed versions of Clojure's concurrency primitives, including Refs, Atoms, and Pods.
+Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/avout">Avout</a> library. The goal of Avout, in particular, is to build distributed versions of Clojure's concurrency primitives, including Refs, Atoms, and Pods.
 
 
 ## Table of Contents
@@ -266,7 +266,7 @@ If an unauthorized client tries to access the node, a org.apache.zookeeper.Keepe
 
 Distributed systems use barriers to block processing of a set of nodes until a condition is met at which time all the nodes are allowed to proceed.
 
-The following is an implementation of a double barrier, <a href="https://github.com/liebke/maneuver/blob/master/src/maneuver/barrier.clj">maneuver.barrier</a>, found in the <a href="https://github.com/liebke/maneuver">Maneuver Library</a> based on the algorithm from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a> page. 
+The following is an implementation of a double barrier, <a href="https://github.com/liebke/avout/blob/master/src/avout/barrier.clj">avout.barrier</a>, found in the <a href="https://github.com/liebke/avout">Avout Library</a> based on the algorithm from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a> page. 
 
     (require '[zookeeper :as zk])
     (import '(java.net InetAddress))
@@ -329,7 +329,7 @@ If the :double-barrier? option is set to true, then exit-barrier is called which
 ### Example Usage
 
     (use 'zookeeper)
-    (use 'maneuver.barrier)
+    (use 'avout.barrier)
     (def client (client \"127.0.0.1:2181\"))
 
     (enter-barrier client 2 #(println \"First process is running\"))
@@ -337,7 +337,7 @@ If the :double-barrier? option is set to true, then exit-barrier is called which
 The call to enter-barrier will block until there are N=2 processes in the barrier. From another REPL, execute the following, and then both processes will run and exit the barrier.
 
     (use 'zookeeper)
-    (use 'maneuver.barrier)
+    (use 'avout.barrier)
     (def client (client \"127.0.0.1:2181\"))
 
     (enter-barrier client 2 #(println \"Second process is running\") :proc-name \"node2\")
@@ -380,7 +380,7 @@ Before running 'lein test' you need to start a local instance of ZooKeeper on po
 * <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">ZooKeeper: Wait-free coordination for Internet-scale systems</a>
 * <a href="http://zookeeper.apache.org/doc/trunk/recipes.html">ZooKeeper Recipes and Solutions</a>
 * <a href="https://github.com/openUtility/menagerie">Menagerie Library</a>
-* <a href="https://github.com/liebke/maneuver">Maneuver Library</a>
+* <a href="https://github.com/liebke/avout">Avout Library</a>
 
 
 ## License

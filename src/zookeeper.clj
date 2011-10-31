@@ -10,9 +10,10 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   * http://archive.cloudera.com/cdh/3/zookeeper/zookeeperProgrammers.pdf
 
 "
-  (:import (org.apache.zookeeper ZooKeeper KeeperException)
+  (:import (org.apache.zookeeper ZooKeeper KeeperException KeeperException$BadVersionException)
            (org.apache.zookeeper.data Stat Id ACL)
-           (java.util.concurrent CountDownLatch))
+           (java.util.concurrent CountDownLatch)
+           (java.util Arrays))
   (:require [clojure.string :as s]
             [zookeeper.internal :as zi]
             [zookeeper.util :as util]))
@@ -373,6 +374,19 @@ Out of the box ZooKeeper provides name service, configuration, and group members
        (zi/try*
          (zi/stat-to-map (.setData client path data version))
          (catch KeeperException e (throw e))))))
+
+(defn compare-and-set-data [client node expected-value new-value]
+  "Sets the data field of the given node, only if the current data
+   byte-array equals (Arrays/equal) the given expected-value."
+  (let [{:keys [data stat]} (data client node)
+        version (:version stat)]
+    (try
+      (when (Arrays/equals data expected-value)
+        (set-data client node new-value version))
+      (catch KeeperException$BadVersionException e
+        (println "Bad Version exception caught: " e)
+        ;; try again if the data has been updated before we were able to
+        (compare-and-set-data client node expected-value new-value)))))
 
 ;; ACL
 

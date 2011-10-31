@@ -42,6 +42,10 @@
     ;; data tests
     (is (= 1 (:version (set-data client parent-node (.getBytes data-string) 0))))
     (is (= data-string (String. (:data (data client parent-node)))))
+    (is (nil? (compare-and-set-data client parent-node (.getBytes "EXPECTED") (.getBytes "NEW VALUE"))))
+    (is (= data-string (String. (:data (data client parent-node)))))
+    (is (= 2 (:version (compare-and-set-data client parent-node (.getBytes data-string) (.getBytes "NEW VALUE")))))
+    (is (= "NEW VALUE" (String. (:data (data client parent-node)))))
 
     ;; delete tests
     (is (true? (delete client (str parent-node "/" child0))))
