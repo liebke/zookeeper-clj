@@ -20,7 +20,9 @@
 (defn sort-sequential-nodes
   "Sorts a list of sequential child nodes."
   ([unsorted-nodes]
-     (map second (sort-by first (index-sequential-nodes unsorted-nodes)))))
+     (sort-sequential-nodes < unsorted-nodes))
+  ([comp unsorted-nodes]
+     (map second (sort-by first comp (index-sequential-nodes unsorted-nodes)))))
 
 (defn filter-nodes-by-pattern
   ([pattern nodes]

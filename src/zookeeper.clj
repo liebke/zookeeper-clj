@@ -208,18 +208,19 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                    :or {watch? false
                         async? false
                         context path}}]
-     (if (or async? callback)
-       (let [prom (promise)]
+     (when path
+       (if (or async? callback)
+         (let [prom (promise)]
+           (zi/try*
+            (seq (.getChildren client path
+                               (if watcher (zi/make-watcher watcher) watch?)
+                               (zi/children-callback (zi/promise-callback prom callback)) context))
+            (catch KeeperException e (throw e)))
+           prom)
          (zi/try*
-           (seq (.getChildren client path
-                              (if watcher (zi/make-watcher watcher) watch?)
-                              (zi/children-callback (zi/promise-callback prom callback)) context))
-           (catch KeeperException e (throw e)))
-         prom)
-       (zi/try*
-        (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
-        (catch KeeperException e (throw e))))))
+          (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
+          (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+          (catch KeeperException e (throw e)))))))
 
 ;; filtering childrend
 
@@ -233,6 +234,12 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   "Returns a sequence of child node names that start with the given prefix."
   ([client dir prefix]
      (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
+
+(defn filter-children-by-suffix
+  "Returns a sequence of child node names that end with the given suffix."
+  ([client dir suffix]
+     (filter-children-by-pattern client dir (re-pattern (str suffix "$")))))
+
 
 ;; node deletion functions
 
@@ -258,33 +265,36 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                    :or {version -1
                         async? false
                         context path}}]
-     (if (or async? callback)
-       (let [prom (promise)]
+     (when path
+       (if (or async? callback)
+         (let [prom (promise)]
+           (zi/try*
+            (.delete client path version (zi/void-callback (zi/promise-callback prom callback)) context)
+            (catch KeeperException e (throw e)))
+           prom)
          (zi/try*
-           (.delete client path version (zi/void-callback (zi/promise-callback prom callback)) context)
-           (catch KeeperException e (throw e)))
-         prom)
-       (zi/try*
-         (do
-           (.delete client path version)
-           true)
-         (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
-         (catch KeeperException e (throw e))))))
+          (do
+            (.delete client path version)
+            true)
+          (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+          (catch KeeperException e (throw e)))))))
 
 (defn delete-all
   "Deletes a node and all of its children."
   ([client path & options]
-     (doseq [child (or (children client path) nil)]
-       (apply delete-all client (str path "/" child) options))
-     (apply delete client path options)))
+     (when path
+       (doseq [child (or (children client path) nil)]
+         (apply delete-all client (str path "/" child) options))
+       (apply delete client path options))))
 
 (defn delete-children
   "Deletes all of the node's children."
   ([client path & options]
-     (let [{:keys [sort?] :or {sort? false}} options
-           children (or (children client path) nil)]
-       (doseq [child (if sort? (util/sort-sequential-nodes children) children)]
-         (apply delete-all client (str path "/" child) options)))))
+     (when path
+       (let [{:keys [sort?] :or {sort? false}} options
+             children (or (children client path) nil)]
+         (doseq [child (if sort? (util/sort-sequential-nodes children) children)]
+           (apply delete-all client (str path "/" child) options))))))
 
 ;; data functions
 
@@ -375,18 +385,18 @@ Out of the box ZooKeeper provides name service, configuration, and group members
          (zi/stat-to-map (.setData client path data version))
          (catch KeeperException e (throw e))))))
 
-(defn compare-and-set-data [client node expected-value new-value]
+(defn compare-and-set-data
   "Sets the data field of the given node, only if the current data
    byte-array equals (Arrays/equal) the given expected-value."
-  (let [{:keys [data stat]} (data client node)
-        version (:version stat)]
-    (try
-      (when (Arrays/equals data expected-value)
-        (set-data client node new-value version))
-      (catch KeeperException$BadVersionException e
-        (println "Bad Version exception caught: " e)
-        ;; try again if the data has been updated before we were able to
-        (compare-and-set-data client node expected-value new-value)))))
+  ([client node expected-value new-value]
+     (let [{:keys [data stat]} (data client node)
+           version (:version stat)]
+       (try
+         (when (Arrays/equals data expected-value)
+           (set-data client node new-value version))
+         (catch KeeperException$BadVersionException e
+           ;; try again if the data has been updated before we were able to
+           (compare-and-set-data client node expected-value new-value))))))
 
 ;; ACL
 

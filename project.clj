@@ -1,4 +1,4 @@
-(defproject zookeeper-clj "0.9-beta1"
+(defproject zookeeper-clj "0.9.0"
   :description "A Clojure DSL for Apache ZooKeeper"
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [org.apache.zookeeper/zookeeper "3.3.2"]
