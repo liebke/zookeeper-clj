@@ -42,7 +42,7 @@ First require the zookeeper namespace and create a client with the connect funct
     
 The connection string is the name, or IP address, and port of the ZooKeeper server. Several host:port pairs can be included as a comma seperated list. The port can be left off if it is 2181.
 
-The connection to the ZooKeeper server can be close with the close function.
+The connection to the ZooKeeper server can be closed with the close function.
 
     (zk/close client)
     
@@ -55,8 +55,8 @@ A watcher function that takes a single event map argument can be passed to conne
     
 if the :watch? flag is set to true when using the exists, children, or data functions, the default watcher function will be triggered under the following circumstances.
 
-* **exists**: the watch will be triggered by a successful operation that creates/delete the node or sets the data on the node.
-* **children**: the watch will be triggered by a successful operation that deletes the node of the given path or creates/delete a child under the node.
+* **exists**: the watch will be triggered by a successful operation that creates/deletes the node or sets the data on the node.
+* **children**: the watch will be triggered by a successful operation that deletes the node of the given path or creates/deletes a child under the node.
 * **data**: the watch will be triggered by a successful operation that sets data on the node, or deletes the node.
 
 The default watcher function can be overriden with a custom function by passing it as the :watcher argument to the exists, children, or data functions.
@@ -65,7 +65,7 @@ The argument to the watcher function is a map with three keys: :event-type, :kee
 
 * **event-type**: :NodeDeleted, :NodeDataChanged, :NodeCreated, :NodeChildrenChanged, :None
 * **keeper-state**: :AuthFailed, :Unknown, :SyncConnected, :Disconnected, :Expired, :NoSyncConnected
-* **path**: the path the node in question, may be nil
+* **path**: the path to the node in question, may be nil
 
 NOTE: Watches are one time triggers; if you get a watch event and you want to get notified of future changes, you must set another watch.
 
@@ -105,7 +105,7 @@ We can check the existence of the newly created node with the exists function.
     
 The exists function returns nil if the node does not exist, and returns a map with the following keys if it does: :numChildren, :ephemeralOwner, :cversion, :mzxid, :czxid, :dataLength, :ctime, :version, :aversion, :mtime, :pzxid. See the ZooKeeper documentation for description of each field.
 
-The exists function accepts the :watch?, :watcher, :async?, and :callback options. The watch functions will be triggered by a successful operation that creates/delete the node or sets the data on the node.
+The exists function accepts the :watch?, :watcher, :async?, and :callback options. The watch functions will be triggered by a successful operation that creates/deletes the node or sets the data on the node.
 
 <a name="children"></a>
 ### children function
@@ -134,7 +134,7 @@ If the :sequential? option is set to true when a node is created, a ten digit se
     (zk/create-all client "/parent/child-" :sequential? true)
     ;; => "/parent/child-0000000000"
 
-The create-all function creates the parent nodes if they don't already exists, here we used it to create the "/parent" node.
+The create-all function creates the parent nodes if they don't already exist, here we used it to create the "/parent" node.
 
 The sequence ID increases monotonically for a given parent directory.
 
@@ -185,6 +185,7 @@ The data function accepts the :watch?, :watcher, :async?, and :callback options.
 The zookeeper.data namespace contains functions for serializing different primitive types to and from byte arrays.
 
     (require '[zookeeper.data :as data])
+    (def version (:version (zk/exists client "/parent")))
     (zk/set-data client "/parent" (data/to-bytes 1234) version)
     (data/to-long (:data (zk/data client "/parent")))
     ;; => 1234
@@ -219,7 +220,7 @@ The acl function takes a scheme, id value, and a set of permissions. The followi
 
 * **world** has a single id, **anyone**, that represents anyone.
 * **auth** doesn't use any id, represents any authenticated user.
-* **digest** uses a username:password string to generate MD5 hash which is then used as an ACL ID identity. Authentication is done by sending the username:password in clear text. When used in the ACL the expression will be the username:base64 encoded SHA1 password digest.
+* **digest** uses a username:password string to generate an MD5 hash which is then used as an ACL ID identity. Authentication is done by sending the username:password in clear text. When used in the ACL the expression will be the username:base64 encoded SHA1 password digest.
 * **host** uses the client host name as an ACL ID identity. The ACL expression is a hostname suffix. For example, the ACL expression host:corp.com matches the ids host:host1.corp.com and host:host2.corp.com, but not host:host1.store.com.
 * **ip** uses the client host IP as an ACL ID identity. The ACL expression is of the form addr/bits where the most significant bits of addr are matched against the most significant bits of the client host IP.
 
@@ -330,7 +331,7 @@ If the :double-barrier? option is set to true, then exit-barrier is called which
 
     (use 'zookeeper)
     (use 'avout.barrier)
-    (def client (client \"127.0.0.1:2181\"))
+    (def client (connect "127.0.0.1:2181"))
 
     (enter-barrier client 2 #(println \"First process is running\"))
 
@@ -338,9 +339,9 @@ The call to enter-barrier will block until there are N=2 processes in the barrie
 
     (use 'zookeeper)
     (use 'avout.barrier)
-    (def client (client \"127.0.0.1:2181\"))
+    (def client (connect "127.0.0.1:2181"))
 
-    (enter-barrier client 2 #(println \"Second process is running\") :proc-name \"node2\")
+    (enter-barrier client 2 #(println "Second process is running") :proc-name "node2")
 
 
 
