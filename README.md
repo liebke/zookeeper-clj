@@ -333,7 +333,7 @@ If the :double-barrier? option is set to true, then exit-barrier is called which
     (use 'examples.barrier)
     (def client (zk/connect "127.0.0.1:2181"))
 
-    (enter-barrier client 2 #(println \"First process is running\"))
+    (enter-barrier client 2 #(println "First process is running"))
 
 The call to enter-barrier will block until there are N=2 processes in the barrier. From another REPL, execute the following, and then both processes will run and exit the barrier.
 
