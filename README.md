@@ -6,6 +6,9 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/avout">Avout</a> library. The goal of Avout, in particular, is to build distributed versions of Clojure's concurrency primitives, including Refs, Atoms, and Pods.
 
+## Example - Group Membership
+
+One of the things ZooKeeper does for
 
 ## Table of Contents
 
@@ -21,6 +24,8 @@ Building these distributed concurrency abstractions is the goal of the Java-base
   * <a href="#serialization">data serialization</a>
   * <a href="#delete">delete functions</a>
   * <a href="#acl">acl function</a>
+* <a href="#group-membership">Group Membership Example</a>
+* <a href="#leader-election">Leader Election Example</a>
 * <a href="#barrier">Barrier Example</a>
 * <a href="#running-zookeeper">Running ZooKeeper</a>
 * <a href="#testing">Testing</a>
@@ -261,7 +266,105 @@ In the above example, only the user that created the node has permissions on it.
 
 If an unauthorized client tries to access the node, a org.apache.zookeeper.KeeperException$NoAuthException exception will be thrown.
 
+<a name="group-membership"></a>
+## Group Membership Example
 
+    (def group-name "/example-group")
+
+    (def client (zk/connect "127.0.0.1:2181"))
+
+    (when-not (zk/exists client group-name)
+      (zk/create client group-name :persistent? true))
+
+This watcher will be called every time the children of the
+"/example-group" node are changed. Each time it is called it will
+print the children and add itself as the watcher.
+
+    (defn group-watcher [x]
+      (let [group (zk/children client group-name :watcher group-watcher)]
+        (prn "Group members: " group)))
+
+Create a new node for this member and add a watcher for changes to the
+children of "/example-group".
+
+    (defn join-group [name]
+      (do (zk/create client (str group-name "/" name))
+          (zk/children client group-name :watcher group-watcher)))
+
+### Run this Example
+
+    (use 'examples.group-membership)
+    (join-group "bob")
+
+From another REPL run:
+
+    (use 'examples.group-membership)
+    (join-group "sue")
+
+And from another REPL run:
+
+    (use 'examples.group-membership)
+    (join-group "dan")
+
+Each REPL will print the group members as each one joins the
+group. Kill any process and the remaining processes will print the
+remaining group members.
+
+<a name="leader-election"></a>
+## Leader Election Example
+
+    (def root-znode "/election")
+
+    (def client (zk/connect "127.0.0.1:2181"))
+
+    (when-not (zk/exists client root-znode)
+      (zk/create client root-znode :persistent? true))
+
+    (defn node-from-path [path]
+      (.substring path (inc (count root-znode))))
+
+    (declare elect-leader)
+
+The predecessor for Node A is the node that has the highest id that is
+< the id of Node A. watch-predecessor is called when the predecessor
+node changes. If this node is deleted and was the leader, then the
+watching node becomes the new leader.
+
+    (defn watch-predecessor [me pred leader {:keys [event-type path]}]
+      (if (and (= event-type :NodeDeleted) (= (node-from-path path) leader))
+        (println "I am the leader!")
+        (if-not (zk/exists client (str root-znode "/" pred)
+                           :watcher (partial watch-predecessor me pred leader))
+          (elect-leader me))))
+
+    (defn predecessor [me coll]
+      (first (first (filter #(= (second %) me) (partition 2 1 coll)))))
+
+If the node associated with the current process is not the leader then
+add a watch to the predecessor.
+
+    (defn elect-leader [me]
+      (let [members (util/sort-sequential-nodes (zk/children client root-znode))
+            leader (first members)]
+        (print "I am" me)
+        (if (= me leader)
+          (println " and I am the leader!")
+          (let [pred (predecessor me members)]
+            (println " and my predecessor is:" pred)
+            (if-not (zk/exists client (str root-znode "/" pred)
+                               :watcher (partial watch-predecessor me pred leader))
+              (elect-leader me))))))
+
+    (defn join-group []
+      (let [me (node-from-path (zk/create client (str root-znode "/n-") :sequential? true))]
+        (elect-leader me)))
+
+Evaluate the following forms in any number of REPLs and then kill each one
+in any order.
+
+    (use 'examples.leader-election)
+    (join-group)
+    
 <a name="barrier"></a>
 ## Barrier Example
 
