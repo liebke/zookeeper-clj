@@ -329,17 +329,17 @@ If the :double-barrier? option is set to true, then exit-barrier is called which
 
 ### Example Usage
 
-    (use 'zookeeper)
-    (use 'avout.barrier)
-    (def client (connect "127.0.0.1:2181"))
+    (require '[zookeeper :as zk])
+    (use 'examples.barrier)
+    (def client (zk/connect "127.0.0.1:2181"))
 
     (enter-barrier client 2 #(println \"First process is running\"))
 
 The call to enter-barrier will block until there are N=2 processes in the barrier. From another REPL, execute the following, and then both processes will run and exit the barrier.
 
-    (use 'zookeeper)
-    (use 'avout.barrier)
-    (def client (connect "127.0.0.1:2181"))
+    (require '[zookeeper :as zk])
+    (use 'examples.barrier)
+    (def client (zk/connect "127.0.0.1:2181"))
 
     (enter-barrier client 2 #(println "Second process is running") :proc-name "node2")
 
