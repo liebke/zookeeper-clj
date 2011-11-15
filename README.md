@@ -349,6 +349,10 @@ The call to enter-barrier will block until there are N=2 processes in the barrie
 <a name="running-zookeeper"></a>
 ## Running ZooKeeper
 
+Download Apache ZooKeeper from <a href="http://zookeeper.apache.org/releases.html">http://zookeeper.apache.org/releases.html</a>.
+
+Unpack to $ZOOKEEPER_HOME (wherever you would like that to be).
+
 Here's an example conf file for a standalone instance, by default ZooKeeper will look for it in $ZOOKEEPER_HOME/conf/zoo.cfg
 
     # The number of milliseconds of each tick
@@ -360,6 +364,7 @@ Here's an example conf file for a standalone instance, by default ZooKeeper will
     # the port at which the clients will connect
     clientPort=2181
     
+Ensure that the dataDir exists and is writable.
     
 After creating and customizing the conf file, start ZooKeeper
 
