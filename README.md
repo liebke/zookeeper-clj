@@ -6,10 +6,6 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/avout">Avout</a> library. The goal of Avout, in particular, is to build distributed versions of Clojure's concurrency primitives, including Refs, Atoms, and Pods.
 
-## Example - Group Membership
-
-One of the things ZooKeeper does for
-
 ## Table of Contents
 
 * <a href="#getting-started">Getting Started</a>
