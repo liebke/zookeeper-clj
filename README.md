@@ -334,7 +334,7 @@ watching node becomes the new leader.
           (elect-leader me))))
 
     (defn predecessor [me coll]
-      (first (first (filter #(= (second %) me) (partition 2 1 coll)))))
+      (ffirst (filter #(= (second %) me) (partition 2 1 coll))))
 
 If the node associated with the current process is not the leader then
 add a watch to the predecessor.

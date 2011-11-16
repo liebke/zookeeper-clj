@@ -22,7 +22,7 @@
       (elect-leader me))))
 
 (defn predecessor [me coll]
-  (first (first (filter #(= (second %) me) (partition 2 1 coll)))))
+  (ffirst (filter #(= (second %) me) (partition 2 1 coll))))
 
 (defn elect-leader [me]
   (let [members (util/sort-sequential-nodes (zk/children client root-znode))
