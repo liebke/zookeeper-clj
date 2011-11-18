@@ -34,30 +34,37 @@ Building these distributed concurrency abstractions is the goal of the Java-base
 
 To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>, and include zookeeper-clj as a dependency by adding the following to your Leiningen project.clj file:
 
+```clojure
     [zookeeper-clj "0.9.0"]
-
+```
 
 <a name="connect"></a>
 ### connect function
 
 First require the zookeeper namespace and create a client with the connect function.
 
+```clojure
     (require '[zookeeper :as zk])
     (def client (zk/connect "127.0.0.1:2181"))
+```
     
 The connection string is the name, or IP address, and port of the ZooKeeper server. Several host:port pairs can be included as a comma seperated list. The port can be left off if it is 2181.
 
 The connection to the ZooKeeper server can be closed with the close function.
 
+```clojure
     (zk/close client)
-    
+```
+
 <a name="watchers"></a>
 ### watchers
 
 A watcher function that takes a single event map argument can be passed to connect, which will be invoked as a result of changes of keeper-state, or as a result of other events. 
 
+```clojure
     (def client (zk/connect "127.0.0.1" :watcher (fn [event] (println event))))
-    
+```
+ 
 if the :watch? flag is set to true when using the exists, children, or data functions, the default watcher function will be triggered under the following circumstances.
 
 * **exists**: the watch will be triggered by a successful operation that creates/deletes the node or sets the data on the node.
@@ -79,9 +86,11 @@ NOTE: Watches are one time triggers; if you get a watch event and you want to ge
 
 Next, create a node called "/parent-node"
 
+```clojure
     (zk/create client "/parent-node" :persistent? true)
     ;; => "/parent-node"
-    
+```
+ 
 Setting the :persistent? flag to true creates a persistent node, meaning one that will persist even after the client that created it is no longer connected. By default, nodes are ephemeral (i.e. :persistent? false) and will be deleted if the client that created them is disconnected (this is key to how ZooKeeper is used to build robust distributed systems).
 
 A node must be persistent if you want it to have child nodes.
@@ -91,23 +100,31 @@ A node must be persistent if you want it to have child nodes.
 
 Most of the zookeeper functions can be called asynchronously by setting the :async? option to true, or by providing an explicit callback function with the :callback option. When invoked asynchronously, each function will return a promise that will eventually contain the result of the call (a map with the following keys: :return-code, :path, :context, :name).
 
+```clojure
     (def result-promise (zk/create client "/parent-node" :persistent? true :async? true))
-    
+```
+
 Dereferencing the promise will block until a result is returned.
 
+```clojure
     @result-promise
+```
 
 If a :callback function is passed, the promise will be returned with the result map and the callback will be invoked with the same map.
 
+```clojure
     (def result-promise (zk/create client "/parent-node" :persistent? true :callback (fn [result] (println result))))
+```
 
 <a name="exists"></a>
 ### exists function
 
 We can check the existence of the newly created node with the exists function.
 
+```clojure
     (zk/exists client "/parent-node")
-    
+```
+
 The exists function returns nil if the node does not exist, and returns a map with the following keys if it does: :numChildren, :ephemeralOwner, :cversion, :mzxid, :czxid, :dataLength, :ctime, :version, :aversion, :mtime, :pzxid. See the ZooKeeper documentation for description of each field.
 
 The exists function accepts the :watch?, :watcher, :async?, and :callback options. The watch functions will be triggered by a successful operation that creates/deletes the node or sets the data on the node.
@@ -117,16 +134,20 @@ The exists function accepts the :watch?, :watcher, :async?, and :callback option
 
 Next, create a child node for "/parent-node"
 
+```clojure
     (zk/create client "/parent-node/child-node")
     ;; => "/parent-node/child-node"
-    
+```
+
 Since the :persistent? flag wasn't set to true, this node will be ephemeral, meaning it will be deleted if the client that created it is disconnected.
 
 A list of a node's children can be retrieved with the children function.
 
+```clojure
     (zk/children client "/parent-node")
     ;; => ("child-node")
-    
+```
+ 
 If the node has no children, nil will be returned, and if the node doesn't exist, false will be returned. 
 
 The children function accepts the :watch?, :watcher, :async?, and :callback options. The watch function will be triggered by a successful operation that deletes the node of the given path or creates/delete a child under the node.
@@ -136,30 +157,37 @@ The children function accepts the :watch?, :watcher, :async?, and :callback opti
 
 If the :sequential? option is set to true when a node is created, a ten digit sequential ID is appended to the name of the node (it's idiomatic to include a dash as the last character of a sequential node's name).
 
+```clojure
     (zk/create-all client "/parent/child-" :sequential? true)
     ;; => "/parent/child-0000000000"
+```
 
 The create-all function creates the parent nodes if they don't already exist, here we used it to create the "/parent" node.
 
 The sequence ID increases monotonically for a given parent directory.
 
+```clojure
     (zk/create client "/parent/child-" :sequential? true)
     ;; => "/parent/child-0000000001"
 
     (zk/create client "/parent/child-" :sequential? true)
     ;; => "/parent/child-0000000002"
-    
+```
 
 The zookeeper.util namespace contains functions for extracting IDs from sequential nodes and sorting them.
 
+```clojure
     (require '[zookeeper.util :as util])
     (util/extract-id (first (zk/children client "/parent")))
     ;; => 2
-    
+```
+
 The order of the child nodes return from children is arbitrary, but the nodes can be sorted with the sort-sequential-nodes function.
 
+```clojure
     (util/sort-sequential-nodes (zk/children client "/parent"))
     ;; => ("child-0000000000" "child-0000000001" "child-0000000002")
+```
 
 <a name="data"></a>
 ### data functions
@@ -168,19 +196,25 @@ Each node has a data field that can hold a byte array, which is limited to 1M is
 
 The set-data function is used to insert data. The set-data function takes a version number, which needs to match the current data version. The current version is a field in the map returned by the exists function.
 
+```clojure
     (def version (:version (zk/exists client "/parent")))
 
     (zk/set-data client "/parent" (.getBytes "hello world" "UTF-8") version)
-    
+```
+
 The data function is used to retrieve the data stored in a node.
     
+```clojure
     (zk/data client "/parent")
     ;; => {:data ..., :stat {...}}
-    
+```
+
 The data function returns a map with two fields, :data and :stat. The :stat value is the same map returned by the exists function. The :data value is a byte array.
 
+```clojure
     (String. (:data (zk/data client "/parent")) "UTF-8")
     ;; => "hello world"
+```
 
 The data function accepts the :watch?, :watcher, :async?, and :callback options. The watch function will be triggered by a successful operation that sets data on the node, or deletes the node.
 
@@ -189,34 +223,42 @@ The data function accepts the :watch?, :watcher, :async?, and :callback options.
 
 The zookeeper.data namespace contains functions for serializing different primitive types to and from byte arrays.
 
+```clojure
     (require '[zookeeper.data :as data])
     (def version (:version (zk/exists client "/parent")))
     (zk/set-data client "/parent" (data/to-bytes 1234) version)
     (data/to-long (:data (zk/data client "/parent")))
     ;; => 1234
+```
 
 The following types have been extended to support the to-bytes method: String, Integer, Double, Long, Float, Character. The following functions can be used to convert byte arrays back to their respective types: to-string, to-int, to-double, to-long, to-float, to-short, and to-char.
 
 Clojure forms can be written to and read from the data field using pr-str and read-string, respectively.
 
+```clojure
     (zk/set-data client "/parent" (data/to-bytes (pr-str {:a 1, :b 2, :c 3})) 2)
     (read-string (data/to-string (:data (zk/data client "/parent"))))
     ;; => {:a 1, :b 2, :c 3}
+```
 
 <a name="delete"></a>
 ### delete functions
 
 Nodes can be deleted with the delete function.
 
+```clojure
     (zk/delete client "/parent/child-node")
-    
+```
+
 The delete function takes an optional version number, the delete will succeed if the node exists at the given version. the default version value is -1, which matches any version number.
 
 The delete function accepts the :async? and :callback options.
 
 Nodes that have children cannot be deleted. Two convenience functions, delete-children and delete-all, can be used to delete all of a node's children or delete a node and all of it's children, respectively.
 
+```clojure
     (delete-all client "/parent")
+```
 
 <a name="acl"></a>
 ### ACL functions
@@ -239,72 +281,93 @@ The folllowing permissions are supported:
 
 Below are examples of each ACL scheme.
 
+```clojure
     (zk/acl "world" "anyone" :read :create :delete :admin :write)
     (zk/acl "ip" "127.0.0.1" :read :create :delete :admin :write)
     (zk/acl "host" "thinkrelevance.com" :admin :read :write :delete :create)
     (zk/acl "auth" "" :read :create :delete :admin :write)
+```
 
 There are five convenience functions for creating ACLs of each scheme, world-acl, auth-acl, digest-acl, host-acl, and ip-acl.
 
-
+```clojure
     (zk/world-acl :read :delete :write)
-    
+```
+
 When no permissions are provided, the following are used by default: :read, :create, :delete, :write -- but not :admin.
-    
+   
+```clojure
     (zk/ip-acl "127.0.0.1")
     (zk/digest-acl "david:secret" :read :delete :write)
     (zk/host-acl "thinkrelevance.com" :read :delete :write)
     (zk/auth-acl :read :delete :write)
+```
 
 A list of ACLs can be passed as an option to the create function.
 
+```clojure
     (zk/create client "/protected-node" :acl [(zk/auth-acl :admin :create :read :delete :write)])
-    
+```
+  
 In the above example, only the user that created the node has permissions on it. In order to authenticate a user, authentication info must be added to a client connection with the add-auth-info function.
 
+```clojure
     (zk/add-auth-info client "digest" "david:secret")
+```
 
 If an unauthorized client tries to access the node, a org.apache.zookeeper.KeeperException$NoAuthException exception will be thrown.
 
 <a name="group-membership"></a>
 ## Group Membership Example
 
+```clojure
     (def group-name "/example-group")
 
     (def client (zk/connect "127.0.0.1:2181"))
 
     (when-not (zk/exists client group-name)
       (zk/create client group-name :persistent? true))
+```
 
 This watcher will be called every time the children of the
 "/example-group" node are changed. Each time it is called it will
 print the children and add itself as the watcher.
 
+```clojure
     (defn group-watcher [x]
       (let [group (zk/children client group-name :watcher group-watcher)]
         (prn "Group members: " group)))
+```
 
 Create a new node for this member and add a watcher for changes to the
 children of "/example-group".
 
+```clojure
     (defn join-group [name]
       (do (zk/create client (str group-name "/" name))
           (zk/children client group-name :watcher group-watcher)))
+```
 
 ### Run this Example
 
+```clojure
     (use 'examples.group-membership)
     (join-group "bob")
+```
 
 From another REPL run:
 
+```clojure
     (use 'examples.group-membership)
     (join-group "sue")
+```
 
 And from another REPL run:
 
+```clojure
     (use 'examples.group-membership)
     (join-group "dan")
+```
 
 Each REPL will print the group members as each one joins the
 group. Kill any process and the remaining processes will print the
@@ -313,6 +376,7 @@ remaining group members.
 <a name="leader-election"></a>
 ## Leader Election Example
 
+```clojure
     (def root-znode "/election")
 
     (def client (zk/connect "127.0.0.1:2181"))
@@ -324,12 +388,14 @@ remaining group members.
       (.substring path (inc (count root-znode))))
 
     (declare elect-leader)
+```
 
 The predecessor for Node A is the node that has the highest id that is
 < the id of Node A. watch-predecessor is called when the predecessor
 node changes. If this node is deleted and was the leader, then the
 watching node becomes the new leader.
 
+```clojure
     (defn watch-predecessor [me pred leader {:keys [event-type path]}]
       (if (and (= event-type :NodeDeleted) (= (node-from-path path) leader))
         (println "I am the leader!")
@@ -339,10 +405,12 @@ watching node becomes the new leader.
 
     (defn predecessor [me coll]
       (ffirst (filter #(= (second %) me) (partition 2 1 coll))))
+```
 
 If the node associated with the current process is not the leader then
 add a watch to the predecessor.
 
+```clojure
     (defn elect-leader [me]
       (let [members (util/sort-sequential-nodes (zk/children client root-znode))
             leader (first members)]
@@ -358,13 +426,16 @@ add a watch to the predecessor.
     (defn join-group []
       (let [me (node-from-path (zk/create client (str root-znode "/n-") :sequential? true))]
         (elect-leader me)))
+```
 
 Evaluate the following forms in any number of REPLs and then kill each one
 in any order.
 
+```clojure
     (use 'examples.leader-election)
     (join-group)
-    
+```
+   
 <a name="barrier"></a>
 ## Barrier Example
 
@@ -372,6 +443,7 @@ Distributed systems use barriers to block processing of a set of nodes until a c
 
 The following is an implementation of a double barrier based on the algorithm from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a> page. 
 
+```clojure
     (require '[zookeeper :as zk])
     (import '(java.net InetAddress))
 
@@ -393,11 +465,11 @@ The following is an implementation of a double barrier based on the algorithm fr
                 (exit-barrier client :barrier-node barrier-node :proc-name proc-name)
                 (zk/delete-all client barrier-node))
               results)))))
-
+```
 
 If the :double-barrier? option is set to true, then exit-barrier is called which blocks until all the processes have completed.
 
-
+```clojure
     (defn exit-barrier
       ([client & {:keys [barrier-node proc-name]
                   :or {barrier-node "/barrier"
@@ -428,25 +500,27 @@ If the :double-barrier? option is set to true, then exit-barrier is called which
                                          :watcher watcher)
                           (.wait mutex))
                         (recur)))))))))
-
+```
 
 ### Example Usage
 
+```clojure
     (require '[zookeeper :as zk])
     (use 'examples.barrier)
     (def client (zk/connect "127.0.0.1:2181"))
 
     (enter-barrier client 2 #(println "First process is running"))
+```
 
 The call to enter-barrier will block until there are N=2 processes in the barrier. From another REPL, execute the following, and then both processes will run and exit the barrier.
 
+```clojure
     (require '[zookeeper :as zk])
     (use 'examples.barrier)
     (def client (zk/connect "127.0.0.1:2181"))
 
     (enter-barrier client 2 #(println "Second process is running") :proc-name "node2")
-
-
+```
 
 
 <a name="running-zookeeper"></a>
@@ -458,6 +532,7 @@ Unpack to $ZOOKEEPER_HOME (wherever you would like that to be).
 
 Here's an example conf file for a standalone instance, by default ZooKeeper will look for it in $ZOOKEEPER_HOME/conf/zoo.cfg
 
+```sh
     # The number of milliseconds of each tick
     tickTime=2000
     
@@ -466,13 +541,15 @@ Here's an example conf file for a standalone instance, by default ZooKeeper will
     
     # the port at which the clients will connect
     clientPort=2181
-    
+```
+  
 Ensure that the dataDir exists and is writable.
     
 After creating and customizing the conf file, start ZooKeeper
 
+```sh
     $ZOOKEEPER_HOME/bin/zkServer.sh start
-
+```
 
 <a name="testing"></a>
 ## Testing
