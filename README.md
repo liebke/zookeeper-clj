@@ -4,7 +4,7 @@ Zookeeper-clj is a Clojure DSL for <a href="http://zookeeper.apache.org/">Apache
 
 Out of the box ZooKeeper provides name service, configuration, and group membership. From these core services, higher-level distributed concurrency abstractions can be built, including distributed locks, distributed queues, barriers, leader-election, and transaction services as described in <a href="http://zookeeper.apache.org/doc/trunk/recipes.html">ZooKeeper Recipes and Solutions</a> and the paper <a href="http://www.usenix.org/event/atc10/tech/full_papers/Hunt.pdf">"ZooKeeper: Wait-free coordination for Internet-scale systems"</a>. 
 
-Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the Clojure-based <a href="https://github.com/liebke/avout">Avout</a> library. The goal of Avout, in particular, is to build distributed versions of Clojure's concurrency primitives, including Refs, Atoms, and Pods.
+Building these distributed concurrency abstractions is the goal of the Java-based <a href="https://github.com/openUtility/menagerie">Menagerie</a> library and the, **soon to be released**, Clojure-based **Avout** library. Avout, in particular, provides distributed versions of Clojure's <a href="http://clojure.org/atoms">Atom</a> and <a href="http://clojure.org/refs">Ref</a> concurrency primitives, as well as distributed implementations of <a href="http://download.oracle.com/javase/1,5,0/docs/api/java/util/concurrent/locks/Lock.html">*java.util.concurrent.lock.Lock*</a>, <a href="http://download.oracle.com/javase/1,5,0/docs/api/java/util/concurrent/locks/ReadWriteLock.html">*java.util.concurrent.lock.ReadWriteLock*</a>.
 
 ## Table of Contents
 
@@ -32,7 +32,10 @@ Building these distributed concurrency abstractions is the goal of the Java-base
 <a name="getting-started"></a>
 ## Getting Started
 
-To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>.
+To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>, and include zookeeper-clj as a dependency by adding the following to your Leiningen project.clj file:
+
+    [zookeeper-clj "0.9.0"]
+
 
 <a name="connect"></a>
 ### connect function
@@ -367,7 +370,7 @@ in any order.
 
 Distributed systems use barriers to block processing of a set of nodes until a condition is met at which time all the nodes are allowed to proceed.
 
-The following is an implementation of a double barrier, <a href="https://github.com/liebke/avout/blob/master/src/avout/barrier.clj">avout.barrier</a>, found in the <a href="https://github.com/liebke/avout">Avout Library</a> based on the algorithm from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a> page. 
+The following is an implementation of a double barrier based on the algorithm from the <a href="http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_eventHandles">ZooKeeper Recipes</a> page. 
 
     (require '[zookeeper :as zk])
     (import '(java.net InetAddress))
@@ -479,7 +482,7 @@ Before running 'lein test' you need to start a local instance of ZooKeeper on po
 <a name="contributing" />
 ## Contributing
 
-Although Avout is not part of Clojure-Contrib, it follows the same guidelines for contributing, which includes signing a Clojure Contributor Agreement (CA) before contributions can be accepted.
+Although Zookeeper-clj is not part of Clojure-Contrib, it follows the same guidelines for contributing, which includes signing a Clojure Contributor Agreement (CA) before contributions can be accepted.
 
 <a name="ref"></a>
 ## References
