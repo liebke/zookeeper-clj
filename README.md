@@ -499,6 +499,6 @@ Although Zookeeper-clj is not part of Clojure-Contrib, it follows the same guide
 
 ## License
 
-Copyright (C) 2011 
+zookeper-clj is Copyright © 2011 David Liebke and Relevance, Inc
 
 Distributed under the Eclipse Public License, the same as Clojure.
