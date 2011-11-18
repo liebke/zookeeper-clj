@@ -25,6 +25,7 @@ Building these distributed concurrency abstractions is the goal of the Java-base
 * <a href="#barrier">Barrier Example</a>
 * <a href="#running-zookeeper">Running ZooKeeper</a>
 * <a href="#testing">Testing</a>
+* <a href="#contributing">Contributing</a>
 * <a href="#ref">References</a>
 
 
@@ -474,6 +475,11 @@ After creating and customizing the conf file, start ZooKeeper
 ## Testing
 
 Before running 'lein test' you need to start a local instance of ZooKeeper on port 2181.
+
+<a name="contributing" />
+## Contributing
+
+Although Avout is not part of Clojure-Contrib, it follows the same guidelines for contributing, which includes signing a Clojure Contributor Agreement (CA) before contributions can be accepted.
 
 <a name="ref"></a>
 ## References
