@@ -25,7 +25,7 @@
 
 
 (defn stat-to-map
-  ([stat]
+  ([^org.apache.zookeeper.data.Stat stat]
      ;;(long czxid, long mzxid, long ctime, long mtime, int version, int cversion, int aversion, long ephemeralOwner, int dataLength, int numChildren, long pzxid)
      (when stat
        {:czxid (.getCzxid stat)
@@ -41,7 +41,7 @@
         :pzxid (.getPzxid stat)})))
 
 (defn event-to-map
-  ([event]
+  ([^org.apache.zookeeper.WatchedEvent event]
      (when event
        {:event-type (keyword (.name (.getType event)))
         :keeper-state (keyword (.name (.getState event)))
@@ -160,14 +160,14 @@
 
 (defn event-types
   ":NodeDeleted :NodeDataChanged :NodeCreated :NodeChildrenChanged :None"
-  ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$EventType/values)))))
+  ([] (into #{} (map #(keyword (.name ^Watcher$Event$EventType %)) (Watcher$Event$EventType/values)))))
 
 (defn keeper-states
   ":AuthFailed :Unknown :SyncConnected :Disconnected :Expired :NoSyncConnected"
-  ([] (into #{} (map #(keyword (.name %)) (Watcher$Event$KeeperState/values)))))
+  ([] (into #{} (map #(keyword (.name ^Watcher$Event$KeeperState %)) (Watcher$Event$KeeperState/values)))))
 
 (defn client-states
   ":AUTH_FAILED :CLOSED :CONNECTED :ASSOCIATING :CONNECTING"
-  ([] (into #{} (map #(keyword (.toString %)) (ZooKeeper$States/values)))))
+  ([] (into #{} (map #(keyword (.toString ^ZooKeeper$States %)) (ZooKeeper$States/values)))))
 
 

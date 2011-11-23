@@ -40,5 +40,5 @@
     (hash-password \"secret\")
 
 "
-  ([password]
+  ([^String password]
      (Base64/encodeBase64String (DigestUtils/sha password))))

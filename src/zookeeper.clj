@@ -36,17 +36,17 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 (defn close
   "Closes the connection to the ZooKeeper server."
-  ([client] (.close client)))
+  ([^ZooKeeper client] (.close client)))
 
 (defn register-watcher
   "Registers a default watcher function with this connection."
-  ([client watcher]
+  ([^ZooKeeper client watcher]
      (.register client (zi/make-watcher watcher))))
 
 (defn state
   "Returns current state of client, including :CONNECTING,
    :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
-  ([client]
+  ([^ZooKeeper client]
      (keyword (.toString (.getState client)))))
 
 ;; node existence function
@@ -72,7 +72,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     (def p1 (exists client \"/yadda\" :callback callback))
     @p1
 "
-  ([client path & {:keys [watcher watch? async? callback context]
+  ([^ZooKeeper client ^String path & {:keys [watcher watch? async? callback context]
                    :or {watch? false
                         async? false
                         context path}}]
@@ -80,12 +80,21 @@ Out of the box ZooKeeper provides name service, configuration, and group members
        (if (or async? callback)
          (let [prom (promise)]
            (zi/try*
-            (.exists client path (if watcher (zi/make-watcher watcher) watch?)
-                     (zi/stat-callback (zi/promise-callback prom callback)) context)
+            (if watcher
+              (.exists client path
+                       ^org.apache.zookeeper.Watcher (zi/make-watcher watcher)
+                       ^org.apache.zookeeper.AsyncCallback$StatCallback (zi/stat-callback (zi/promise-callback prom callback))
+                       ^Object context)
+              (.exists client path
+                       (boolean watch?)
+                       ^org.apache.zookeeper.AsyncCallback$StatCallback (zi/stat-callback (zi/promise-callback prom callback))
+                       ^Object context))
             (catch KeeperException e (throw e)))
            prom)
          (zi/try*
-          (zi/stat-to-map (.exists client path (if watcher (zi/make-watcher watcher) watch?)))
+          (if watcher
+            (zi/stat-to-map (.exists client path ^org.apache.zookeeper.Watcher (zi/make-watcher watcher)))
+            (zi/stat-to-map (.exists client path (boolean watch?))))
           (catch KeeperException e (throw e)))))))
 
 ;; node creation functions
@@ -163,7 +172,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 
 "
-  ([client path & options]
+  ([^ZooKeeper client path & options]
      (when path
        (loop [result-path "" [dir & children] (rest (s/split path #"/"))]
          (if dir
@@ -204,7 +213,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     @p3
 
 "
-  ([client path & {:keys [watcher watch? async? callback context sort?]
+  ([^ZooKeeper client path & {:keys [watcher watch? async? callback context sort?]
                    :or {watch? false
                         async? false
                         context path}}]
@@ -226,18 +235,18 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 (defn filter-children-by-pattern
   "Returns a sequence of child node names filtered by the given regex pattern."
-  ([client dir pattern]
+  ([^ZooKeeper client dir pattern]
      (when-let [children (children client dir)]
        (util/filter-nodes-by-pattern pattern children))))
 
 (defn filter-children-by-prefix
   "Returns a sequence of child node names that start with the given prefix."
-  ([client dir prefix]
+  ([^ZooKeeper client dir prefix]
      (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
 
 (defn filter-children-by-suffix
   "Returns a sequence of child node names that end with the given suffix."
-  ([client dir suffix]
+  ([^ZooKeeper client dir suffix]
      (filter-children-by-pattern client dir (re-pattern (str suffix "$")))))
 
 
@@ -261,7 +270,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     (def p0 (delete client \"/bar\" :callback callback))
     @p0
 "
-  ([client path & {:keys [version async? callback context]
+  ([^ZooKeeper client path & {:keys [version async? callback context]
                    :or {version -1
                         async? false
                         context path}}]
@@ -281,7 +290,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 (defn delete-all
   "Deletes a node and all of its children."
-  ([client path & options]
+  ([^ZooKeeper client path & options]
      (when path
        (doseq [child (or (children client path) nil)]
          (apply delete-all client (str path "/" child) options))
@@ -289,7 +298,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 (defn delete-children
   "Deletes all of the node's children."
-  ([client path & options]
+  ([^ZooKeeper client path & options]
      (when path
        (let [{:keys [sort?] :or {sort? false}} options
              children (or (children client path) nil)]
@@ -327,7 +336,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     (read-string (String. (:data (data client \"/foobar\"))))
 
 "
-  ([client path & {:keys [watcher watch? async? callback context]
+  ([^ZooKeeper client path & {:keys [watcher watch? async? callback context]
                    :or {watch? false
                         async? false
                         context path}}]
@@ -371,7 +380,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     (String. (:data (data client \"/foo\")))
 
 "
-  ([client path data version & {:keys [async? callback context]
+  ([^ZooKeeper client path data version & {:keys [async? callback context]
                                 :or {async? false
                                      context path}}]
      (if (or async? callback)
@@ -388,7 +397,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 (defn compare-and-set-data
   "Sets the data field of the given node, only if the current data
    byte-array equals (Arrays/equal) the given expected-value."
-  ([client node expected-value new-value]
+  ([^ZooKeeper client node expected-value new-value]
      (let [{:keys [data stat]} (data client node)
            version (:version stat)]
        (try
@@ -421,7 +430,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     (def p1 (get-acl client \"/foo\" :callback callback))
 
 "
-  ([client path & {:keys [async? callback context]
+  ([^ZooKeeper client path & {:keys [async? callback context]
                    :or {async? false
                         context path}}]
      (let [stat (Stat.)]
@@ -438,7 +447,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 (defn add-auth-info
   "Add auth info to connection."
-  ([client scheme auth]
+  ([^ZooKeeper client scheme auth]
      (zi/try*
       (.addAuthInfo client scheme (if (string? auth) (.getBytes auth "UTF-8") auth))
       (catch KeeperException e (throw e)))))

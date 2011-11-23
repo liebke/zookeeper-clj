@@ -16,7 +16,7 @@
 
 (extend-type String
   ByteConverter
-  (to-bytes [this] (.getBytes this *charset*)))
+  (to-bytes [this] (.getBytes this ^String *charset*)))
 
 (extend-type Integer
   ByteConverter
@@ -49,7 +49,7 @@
     (get-bytes c 2 .putChar)))
 
 (defn to-string
-  ([bytes](String. bytes *charset*)))
+  ([^bytes bytes](String. bytes ^String *charset*)))
 
 (defn to-int
   ([bytes]
