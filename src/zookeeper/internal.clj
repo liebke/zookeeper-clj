@@ -20,7 +20,7 @@
      `(try
         (try
           ~expression
-          (catch Throwable e# (throw (.getCause e#))))
+          (catch Throwable e# (throw (or (.getCause e#) e#))))
         ~@catches)))
 
 
