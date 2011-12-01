@@ -35,7 +35,7 @@ Building these distributed concurrency abstractions is the goal of the Java-base
 To run these examples, first start a local instance of ZooKeeper on port 2181, see <a href="#running-zookeeper">instructions below</a>, and include zookeeper-clj as a dependency by adding the following to your Leiningen project.clj file:
 
 ```clojure
-    [zookeeper-clj "0.9.0"]
+    [zookeeper-clj "0.9.1"]
 ```
 
 <a name="connect"></a>
