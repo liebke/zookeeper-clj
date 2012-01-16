@@ -4,7 +4,7 @@
 
 (defn server-config
   ([filename]
-     (-> (ServerConfig.)
+     (doto (ServerConfig.)
          (.parse filename))))
 
 (defn start-server
