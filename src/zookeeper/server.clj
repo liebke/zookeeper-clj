@@ -4,8 +4,9 @@
 
 (defn server-config
   ([filename]
-     (-> (ServerConfig.)
-         (.parse filename))))
+     (let [server-config (ServerConfig.)]
+       (.parse server-config filename)
+       server-config)))
 
 (defn start-server
   ([config-filename]
