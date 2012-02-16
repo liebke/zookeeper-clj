@@ -257,7 +257,7 @@ The delete function accepts the :async? and :callback options.
 Nodes that have children cannot be deleted. Two convenience functions, delete-children and delete-all, can be used to delete all of a node's children or delete a node and all of it's children, respectively.
 
 ```clojure
-    (delete-all client "/parent")
+    (zk/delete-all client "/parent")
 ```
 
 <a name="acl"></a>
