@@ -13,7 +13,8 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   (:import (org.apache.zookeeper ZooKeeper KeeperException KeeperException$BadVersionException)
            (org.apache.zookeeper.data Stat Id ACL)
            (java.util.concurrent CountDownLatch)
-           (java.util Arrays))
+           (java.util Arrays)
+           (java.util.concurrent TimeUnit))
   (:require [clojure.string :as s]
             [zookeeper.internal :as zi]
             [zookeeper.util :as util]))
@@ -31,7 +32,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                                              (.countDown latch))
                                            (when watcher (watcher event))))
            client (ZooKeeper. connection-string timeout-msec session-watcher)]
-       (.await latch)
+       (.await latch timeout-msec (. TimeUnit MILLISECONDS))
        client)))
 
 (defn close
@@ -512,4 +513,3 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   "Creates an instance of an ACL using the digest scheme."
   ([username password & perms]
      (apply acl "digest" (str username ":" password) (or perms default-perms))))
-
