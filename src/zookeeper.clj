@@ -22,18 +22,38 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 ;; connection functions
 
-(defn connect
-  "Returns a ZooKeeper client."
-  ([connection-string & {:keys [timeout-msec watcher]
-                         :or {timeout-msec 5000}}]
+(defn- make-connection
+  ([]
+     (fn [connection-string timeout-msec session-watcher]
+       (ZooKeeper. connection-string timeout-msec session-watcher)))
+  ([session-id session-password]
+     (fn [connection-string timeout-msec session-watcher]
+       (ZooKeeper. connection-string timeout-msec session-watcher session-id session-password))))
+
+(defn connect-with-timer
+  "Tries to connect, Returns a ZooKeeper client unless connection times out"
+  ([connection-string connection-fn timeout-msec watcher]
      (let [latch (CountDownLatch. 1)
            session-watcher (zi/make-watcher (fn [event]
-                                           (when (= (:keeper-state event) :SyncConnected)
-                                             (.countDown latch))
-                                           (when watcher (watcher event))))
-           client (ZooKeeper. connection-string timeout-msec session-watcher)]
+                                              (when (= (:keeper-state event) :SyncConnected)
+                                                (.countDown latch))
+                                              (when watcher (watcher event))))
+           client (connection-fn connection-string timeout-msec session-watcher)]
        (.await latch timeout-msec (. TimeUnit MILLISECONDS))
        client)))
+
+(defn connect
+  "Returns a ZooKeeper client."
+  ([connection-string & {:keys [timeout-msec watcher session-id session-password]
+                         :or {timeout-msec 5000}}]
+     (if (and session-id session-password)
+       (connect-with-timer connection-string
+         (make-connection session-id session-password)
+         timeout-msec watcher)
+       (connect-with-timer connection-string
+         (make-connection)
+         timeout-msec watcher))))
+
 
 (defn close
   "Closes the connection to the ZooKeeper server."
@@ -49,6 +69,12 @@ Out of the box ZooKeeper provides name service, configuration, and group members
    :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
   ([^ZooKeeper client]
      (keyword (.toString (.getState client)))))
+
+(defn session-password [^ZooKeeper client]
+  (.getSessionPasswd client))
+
+(defn session-id [^ZooKeeper client]
+  (.getSessionId client))
 
 ;; node existence function
 

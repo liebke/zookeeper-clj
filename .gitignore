@@ -1,4 +1,7 @@
+zookeeper.out
+target
 pom.xml
+pom.xml.asc
 *jar
 /lib/
 /classes/

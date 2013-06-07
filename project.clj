@@ -1,4 +1,4 @@
-(defproject zookeeper-clj "0.9.4-timeout-fix"
+(defproject xookeeper-clj "0.1.1"
   :description "A Clojure DSL for Apache ZooKeeper"
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.apache.zookeeper/zookeeper "3.4.0"]
