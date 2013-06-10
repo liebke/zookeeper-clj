@@ -51,7 +51,6 @@
 
 (defn make-watcher
   ([handler]
-     (println "+++ making watcher from" handler)
      (reify Watcher
        (process [this event]
          (handler (event-to-map event))))))
