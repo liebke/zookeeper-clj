@@ -82,3 +82,8 @@
 
     ;; close the client
     (close client)))
+
+(deftest no-server-test
+  (let [client (connect "127.0.0.1:80" :timeout-ms 1)]
+    (is (org.apache.zookeeper.ZooKeeper$States/CONNECTING)
+        (.getState client ))))
