@@ -157,7 +157,7 @@ Out of the box ZooKeeper provides name service, configuration, and group members
          (.create client path data acl
                   (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
          (catch org.apache.zookeeper.KeeperException$NodeExistsException e
-           path)
+           false)
          (catch KeeperException e (throw e))))))
 
 (defn create-all
@@ -179,9 +179,9 @@ Out of the box ZooKeeper provides name service, configuration, and group members
            (let [node (str result-path "/" dir)]
              (if (exists client node)
                (recur node children)
-               (recur (if (seq children)
+               (recur (or (if (seq children)
                         (create client node :persistent? true)
-                        (apply create client node options))
+                        (apply create client node options)) node)
                       children)))
            result-path)))))
 
