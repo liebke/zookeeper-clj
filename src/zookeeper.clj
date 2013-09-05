@@ -407,6 +407,23 @@ Out of the box ZooKeeper provides name service, configuration, and group members
            ;; try again if the data has been updated before we were able to
            (compare-and-set-data client node expected-value new-value))))))
 
+(defn alter-data
+  "Sets the data field of the given node, using the value returned
+   from a call to (fun current-data). If there is no data yet,
+   current-data will be nil. fun should be free of side effects, as
+   the operation will be retried as long as the version is different
+   from that on the server."
+  ([^ZooKeeper client path fun] (alter-data client path fun nil 0))
+  ([^ZooKeeper client path fun data version]
+     (or
+      (try
+        (zk/set-data client path (fun data) version)
+        (catch KeeperException$BadVersionException e
+          nil)) ;; return 'nil' for 'or' here, as we cannot 'recur' from here
+      (let [{:keys [data stat]} (zk/data client path)
+           version (:version stat)]
+        (recur client path fun data version)))))
+
 ;; ACL
 
 (defn get-acl
