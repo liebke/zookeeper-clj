@@ -23,6 +23,7 @@
     ;; creation tests
     (is (= nil (exists client parent-node)))
     (is (= parent-node (create client parent-node :persistent? true)))
+    (is (= false (create client parent-node :persistent? true)))
     (is (= :SyncConnected (:keeper-state (first @ref0)))) ;; the first event from the client will block
 
     ;; children tests
