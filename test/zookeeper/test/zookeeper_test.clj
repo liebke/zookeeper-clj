@@ -83,3 +83,6 @@
 
     ;; close the client
     (close client)))
+
+(deftest no-server-test
+  (is (thrown? java.lang.IllegalStateException (connect "127.0.0.1:79" :timeout-ms 1))))
