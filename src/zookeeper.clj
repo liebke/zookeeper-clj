@@ -21,6 +21,10 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 ;; connection functions
 
+(defn close
+  "Closes the connection to the ZooKeeper server."
+  ([^ZooKeeper client] (.close client)))
+
 (defn connect
   "Returns a ZooKeeper client."
   ([connection-string & {:keys [timeout-msec watcher]
@@ -34,11 +38,8 @@ Out of the box ZooKeeper provides name service, configuration, and group members
        (.await latch timeout-msec TimeUnit/MILLISECONDS)
        (if (= (.getCount latch) 0)
          client
-         (throw (IllegalStateException. "Cannot connect to server"))))))
-
-(defn close
-  "Closes the connection to the ZooKeeper server."
-  ([^ZooKeeper client] (.close client)))
+         (do (close client)
+             (throw (IllegalStateException. "Cannot connect to server")))))))
 
 (defn register-watcher
   "Registers a default watcher function with this connection."
