@@ -554,7 +554,7 @@ After creating and customizing the conf file, start ZooKeeper
 <a name="testing"></a>
 ## Testing
 
-Before running 'lein test' you need to start a local instance of ZooKeeper on port 2181.
+'lein test' task is using an embedded instance of ZooKeeper.
 
 <a name="contributing" />
 ## Contributing

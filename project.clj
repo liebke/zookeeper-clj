@@ -3,4 +3,5 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.apache.zookeeper/zookeeper "3.4.0" :exclusions [org.slf4j/slf4j-log4j12]]
                  [log4j/log4j "1.2.17"]
-                 [commons-codec "1.7"]])
+                 [commons-codec "1.7"]
+                 [org.apache.curator/curator-test "2.8.0" :scope "test"]])

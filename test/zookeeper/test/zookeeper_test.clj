@@ -1,9 +1,15 @@
 (ns zookeeper.test.zookeeper-test
   (:use [zookeeper]
         [clojure.test])
-  (:import [java.util UUID]))
+  (:import [java.util UUID]
+           [org.apache.curator.test TestingServer]))
 
-;; these tests require a local instance of ZooKeeper to be running on port 2181.
+(defn setup-embedded-zk [f]
+  (let [server (TestingServer. 2181)]
+    (do (f)
+        (.close server))))
+
+(use-fixtures :once setup-embedded-zk)
 
 (def connect-string "127.0.0.1:2181")
 
