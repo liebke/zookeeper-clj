@@ -4,10 +4,10 @@
 
 (defn server-config
   ([filename]
-     (doto (ServerConfig.)
-         (.parse filename))))
+   (doto (ServerConfig.)
+     (.parse filename))))
 
 (defn start-server
   ([config-filename]
-     (-> (ZooKeeperServerMain.)
-         (.runFromConfig (server-config config-filename)))))
+   (-> (ZooKeeperServerMain.)
+       (.runFromConfig (server-config config-filename)))))
