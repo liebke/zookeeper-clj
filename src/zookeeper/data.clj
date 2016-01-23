@@ -5,11 +5,11 @@
 
 (defmacro get-bytes [value size f]
   `(let [bytes# (make-array Byte/TYPE ~size)
-          buf# (-> (ByteBuffer/allocateDirect ~size)
+         buf# (-> (ByteBuffer/allocateDirect ~size)
                   (~f ~value)
                   .clear
                   (.get bytes# 0 ~size))]
-    bytes#))
+     bytes#))
 
 (defprotocol ByteConverter
   (to-bytes [this] "Converts value to a byte array"))
@@ -49,29 +49,29 @@
     (get-bytes c 2 .putChar)))
 
 (defn to-string
-  ([^bytes bytes](String. bytes ^String *charset*)))
+  ([^bytes bytes] (String. bytes ^String *charset*)))
 
 (defn to-int
   ([bytes]
-     (.getInt (ByteBuffer/wrap bytes))))
+   (.getInt (ByteBuffer/wrap bytes))))
 
 (defn to-long
   ([bytes]
-     (.getLong (ByteBuffer/wrap bytes))))
+   (.getLong (ByteBuffer/wrap bytes))))
 
 (defn to-double
   ([bytes]
-     (.getDouble (ByteBuffer/wrap bytes))))
+   (.getDouble (ByteBuffer/wrap bytes))))
 
 (defn to-float
   ([bytes]
-     (.getFloat (ByteBuffer/wrap bytes))))
+   (.getFloat (ByteBuffer/wrap bytes))))
 
 (defn to-short
   ([bytes]
-     (.getShort (ByteBuffer/wrap bytes))))
+   (.getShort (ByteBuffer/wrap bytes))))
 
 (defn to-char
   ([bytes]
-     (.getChar (ByteBuffer/wrap bytes))))
+   (.getChar (ByteBuffer/wrap bytes))))
 

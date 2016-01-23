@@ -18,7 +18,6 @@ Out of the box ZooKeeper provides name service, configuration, and group members
             [zookeeper.internal :as zi]
             [zookeeper.util :as util]))
 
-
 ;; connection functions
 
 (defn close
@@ -29,28 +28,28 @@ Out of the box ZooKeeper provides name service, configuration, and group members
   "Returns a ZooKeeper client."
   ([connection-string & {:keys [timeout-msec watcher]
                          :or {timeout-msec 5000}}]
-     (let [latch (CountDownLatch. 1)
-           session-watcher (zi/make-watcher (fn [event]
-                                           (when (= (:keeper-state event) :SyncConnected)
-                                             (.countDown latch))
-                                           (when watcher (watcher event))))
-           client (ZooKeeper. connection-string timeout-msec session-watcher)]
-       (.await latch timeout-msec TimeUnit/MILLISECONDS)
-       (if (= (.getCount latch) 0)
-         client
-         (do (close client)
-             (throw (IllegalStateException. "Cannot connect to server")))))))
+   (let [latch (CountDownLatch. 1)
+         session-watcher (zi/make-watcher (fn [event]
+                                            (when (= (:keeper-state event) :SyncConnected)
+                                              (.countDown latch))
+                                            (when watcher (watcher event))))
+         client (ZooKeeper. connection-string timeout-msec session-watcher)]
+     (.await latch timeout-msec TimeUnit/MILLISECONDS)
+     (if (= (.getCount latch) 0)
+       client
+       (do (close client)
+           (throw (IllegalStateException. "Cannot connect to server")))))))
 
 (defn register-watcher
   "Registers a default watcher function with this connection."
   ([^ZooKeeper client watcher]
-     (.register client (zi/make-watcher watcher))))
+   (.register client (zi/make-watcher watcher))))
 
 (defn state
   "Returns current state of client, including :CONNECTING,
    :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
   ([^ZooKeeper client]
-     (keyword (.toString (.getState client)))))
+   (keyword (.toString (.getState client)))))
 
 ;; node existence function
 
@@ -76,29 +75,29 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     @p1
 "
   ([^ZooKeeper client ^String path & {:keys [watcher watch? async? callback context]
-                   :or {watch? false
-                        async? false
-                        context path}}]
-     (when path
-       (if (or async? callback)
-         (let [prom (promise)]
-           (zi/try*
-            (if watcher
-              (.exists client path
-                       ^org.apache.zookeeper.Watcher (zi/make-watcher watcher)
-                       ^org.apache.zookeeper.AsyncCallback$StatCallback (zi/stat-callback (zi/promise-callback prom callback))
-                       ^Object context)
-              (.exists client path
-                       (boolean watch?)
-                       ^org.apache.zookeeper.AsyncCallback$StatCallback (zi/stat-callback (zi/promise-callback prom callback))
-                       ^Object context))
-            (catch KeeperException e (throw e)))
-           prom)
+                                      :or {watch? false
+                                           async? false
+                                           context path}}]
+   (when path
+     (if (or async? callback)
+       (let [prom (promise)]
          (zi/try*
           (if watcher
-            (zi/stat-to-map (.exists client path ^org.apache.zookeeper.Watcher (zi/make-watcher watcher)))
-            (zi/stat-to-map (.exists client path (boolean watch?))))
-          (catch KeeperException e (throw e)))))))
+            (.exists client path
+                     ^org.apache.zookeeper.Watcher (zi/make-watcher watcher)
+                     ^org.apache.zookeeper.AsyncCallback$StatCallback (zi/stat-callback (zi/promise-callback prom callback))
+                     ^Object context)
+            (.exists client path
+                     (boolean watch?)
+                     ^org.apache.zookeeper.AsyncCallback$StatCallback (zi/stat-callback (zi/promise-callback prom callback))
+                     ^Object context))
+          (catch KeeperException e (throw e)))
+         prom)
+       (zi/try*
+        (if watcher
+          (zi/stat-to-map (.exists client path ^org.apache.zookeeper.Watcher (zi/make-watcher watcher)))
+          (zi/stat-to-map (.exists client path (boolean watch?))))
+        (catch KeeperException e (throw e)))))))
 
 ;; node creation functions
 
@@ -147,21 +146,21 @@ Out of the box ZooKeeper provides name service, configuration, and group members
                         acl (zi/acls :open-acl-unsafe)
                         context path
                         async? false}}]
-     (if (or async? callback)
-       (let [prom (promise)]
-         (zi/try*
-           (.create client path data acl
-                    (zi/create-modes {:persistent? persistent?, :sequential? sequential?})
-                    (zi/string-callback (zi/promise-callback prom callback))
-                    context)
-           (catch KeeperException e (throw e)))
-         prom)
+   (if (or async? callback)
+     (let [prom (promise)]
        (zi/try*
-         (.create client path data acl
-                  (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
-         (catch org.apache.zookeeper.KeeperException$NodeExistsException e
-           false)
-         (catch KeeperException e (throw e))))))
+        (.create client path data acl
+                 (zi/create-modes {:persistent? persistent?, :sequential? sequential?})
+                 (zi/string-callback (zi/promise-callback prom callback))
+                 context)
+        (catch KeeperException e (throw e)))
+       prom)
+     (zi/try*
+      (.create client path data acl
+               (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
+      (catch org.apache.zookeeper.KeeperException$NodeExistsException e
+        false)
+      (catch KeeperException e (throw e))))))
 
 (defn create-all
   "Create a node and all of its parents. The last node will be ephemeral,
@@ -176,18 +175,18 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([^ZooKeeper client path & options]
-     (when path
-       (loop [result-path "" [dir & children] (rest (s/split path #"/"))]
-         (if dir
-           (let [node (str result-path "/" dir)]
-             (if (exists client node)
-               (recur node children)
-               (recur (or (if (seq children)
-                            (create client node :persistent? true)
-                            (apply create client node options))
-                          node)
-                      children)))
-           result-path)))))
+   (when path
+     (loop [result-path "" [dir & children] (rest (s/split path #"/"))]
+       (if dir
+         (let [node (str result-path "/" dir)]
+           (if (exists client node)
+             (recur node children)
+             (recur (or (if (seq children)
+                          (create client node :persistent? true)
+                          (apply create client node options))
+                        node)
+                    children)))
+         result-path)))))
 
 ;; children functions
 
@@ -218,41 +217,40 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([^ZooKeeper client path & {:keys [watcher watch? async? callback context sort?]
-                   :or {watch? false
-                        async? false
-                        context path}}]
-     (when path
-       (if (or async? callback)
-         (let [prom (promise)]
-           (zi/try*
-            (seq (.getChildren client path
-                               (if watcher (zi/make-watcher watcher) watch?)
-                               (zi/children-callback (zi/promise-callback prom callback)) context))
-            (catch KeeperException e (throw e)))
-           prom)
+                              :or {watch? false
+                                   async? false
+                                   context path}}]
+   (when path
+     (if (or async? callback)
+       (let [prom (promise)]
          (zi/try*
-          (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
-          (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
-          (catch KeeperException e (throw e)))))))
+          (seq (.getChildren client path
+                             (if watcher (zi/make-watcher watcher) watch?)
+                             (zi/children-callback (zi/promise-callback prom callback)) context))
+          (catch KeeperException e (throw e)))
+         prom)
+       (zi/try*
+        (seq (.getChildren client path (if watcher (zi/make-watcher watcher) watch?)))
+        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch KeeperException e (throw e)))))))
 
 ;; filtering childrend
 
 (defn filter-children-by-pattern
   "Returns a sequence of child node names filtered by the given regex pattern."
   ([^ZooKeeper client dir pattern]
-     (when-let [children (children client dir)]
-       (util/filter-nodes-by-pattern pattern children))))
+   (when-let [children (children client dir)]
+     (util/filter-nodes-by-pattern pattern children))))
 
 (defn filter-children-by-prefix
   "Returns a sequence of child node names that start with the given prefix."
   ([^ZooKeeper client dir prefix]
-     (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
+   (filter-children-by-pattern client dir (re-pattern (str "^" prefix)))))
 
 (defn filter-children-by-suffix
   "Returns a sequence of child node names that end with the given suffix."
   ([^ZooKeeper client dir suffix]
-     (filter-children-by-pattern client dir (re-pattern (str suffix "$")))))
-
+   (filter-children-by-pattern client dir (re-pattern (str suffix "$")))))
 
 ;; node deletion functions
 
@@ -275,39 +273,39 @@ Out of the box ZooKeeper provides name service, configuration, and group members
     @p0
 "
   ([^ZooKeeper client path & {:keys [version async? callback context]
-                   :or {version -1
-                        async? false
-                        context path}}]
-     (when path
-       (if (or async? callback)
-         (let [prom (promise)]
-           (zi/try*
-            (.delete client path version (zi/void-callback (zi/promise-callback prom callback)) context)
-            (catch KeeperException e (throw e)))
-           prom)
+                              :or {version -1
+                                   async? false
+                                   context path}}]
+   (when path
+     (if (or async? callback)
+       (let [prom (promise)]
          (zi/try*
-          (do
-            (.delete client path version)
-            true)
-          (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
-          (catch KeeperException e (throw e)))))))
+          (.delete client path version (zi/void-callback (zi/promise-callback prom callback)) context)
+          (catch KeeperException e (throw e)))
+         prom)
+       (zi/try*
+        (do
+          (.delete client path version)
+          true)
+        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch KeeperException e (throw e)))))))
 
 (defn delete-all
   "Deletes a node and all of its children."
   ([^ZooKeeper client path & options]
-     (when path
-       (doseq [child (or (children client path) nil)]
-         (apply delete-all client (str path "/" child) options))
-       (apply delete client path options))))
+   (when path
+     (doseq [child (or (children client path) nil)]
+       (apply delete-all client (str path "/" child) options))
+     (apply delete client path options))))
 
 (defn delete-children
   "Deletes all of the node's children."
   ([^ZooKeeper client path & options]
-     (when path
-       (let [{:keys [sort?] :or {sort? false}} options
-             children (or (children client path) nil)]
-         (doseq [child (if sort? (util/sort-sequential-nodes children) children)]
-           (apply delete-all client (str path "/" child) options))))))
+   (when path
+     (let [{:keys [sort?] :or {sort? false}} options
+           children (or (children client path) nil)]
+       (doseq [child (if sort? (util/sort-sequential-nodes children) children)]
+         (apply delete-all client (str path "/" child) options))))))
 
 ;; data functions
 
@@ -341,21 +339,21 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([^ZooKeeper client path & {:keys [watcher watch? async? callback context]
-                   :or {watch? false
-                        async? false
-                        context path}}]
-     (let [stat (Stat.)]
-       (if (or async? callback)
-        (let [prom (promise)]
-          (zi/try*
-           (.getData client path (if watcher (zi/make-watcher watcher) watch?)
-                     (zi/data-callback (zi/promise-callback prom callback)) context)
-           (catch KeeperException e (throw e)))
-          prom)
-        {:data (zi/try*
-                (.getData client path (if watcher (zi/make-watcher watcher) watch?) stat)
-                (catch KeeperException e (throw e)))
-         :stat (zi/stat-to-map stat)}))))
+                              :or {watch? false
+                                   async? false
+                                   context path}}]
+   (let [stat (Stat.)]
+     (if (or async? callback)
+       (let [prom (promise)]
+         (zi/try*
+          (.getData client path (if watcher (zi/make-watcher watcher) watch?)
+                    (zi/data-callback (zi/promise-callback prom callback)) context)
+          (catch KeeperException e (throw e)))
+         prom)
+       {:data (zi/try*
+               (.getData client path (if watcher (zi/make-watcher watcher) watch?) stat)
+               (catch KeeperException e (throw e)))
+        :stat (zi/stat-to-map stat)}))))
 
 (defn set-data
   "Sets the value of the data field of the given node.
@@ -385,31 +383,31 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([^ZooKeeper client path data version & {:keys [async? callback context]
-                                :or {async? false
-                                     context path}}]
-     (if (or async? callback)
-       (let [prom (promise)]
-         (zi/try*
-           (.setData client path data version
-                     (zi/stat-callback (zi/promise-callback prom callback)) context)
-           (catch KeeperException e (throw e)))
-         prom)
+                                           :or {async? false
+                                                context path}}]
+   (if (or async? callback)
+     (let [prom (promise)]
        (zi/try*
-         (zi/stat-to-map (.setData client path data version))
-         (catch KeeperException e (throw e))))))
+        (.setData client path data version
+                  (zi/stat-callback (zi/promise-callback prom callback)) context)
+        (catch KeeperException e (throw e)))
+       prom)
+     (zi/try*
+      (zi/stat-to-map (.setData client path data version))
+      (catch KeeperException e (throw e))))))
 
 (defn compare-and-set-data
   "Sets the data field of the given node, only if the current data
    byte-array equals (Arrays/equal) the given expected-value."
   ([^ZooKeeper client node expected-value new-value]
-     (let [{:keys [data stat]} (data client node)
-           version (:version stat)]
-       (try
-         (when (Arrays/equals data expected-value)
-           (set-data client node new-value version))
-         (catch KeeperException$BadVersionException e
+   (let [{:keys [data stat]} (data client node)
+         version (:version stat)]
+     (try
+       (when (Arrays/equals data expected-value)
+         (set-data client node new-value version))
+       (catch KeeperException$BadVersionException e
            ;; try again if the data has been updated before we were able to
-           (compare-and-set-data client node expected-value new-value))))))
+         (compare-and-set-data client node expected-value new-value))))))
 
 ;; ACL
 
@@ -435,31 +433,31 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([^ZooKeeper client path & {:keys [async? callback context]
-                   :or {async? false
-                        context path}}]
-     (let [stat (Stat.)]
-       (if (or async? callback)
-         (let [prom (promise)]
-           (zi/try*
-             (.getACL client path stat (zi/acl-callback (zi/promise-callback prom callback)) context)
-             (catch KeeperException e (throw e)))
+                              :or {async? false
+                                   context path}}]
+   (let [stat (Stat.)]
+     (if (or async? callback)
+       (let [prom (promise)]
+         (zi/try*
+          (.getACL client path stat (zi/acl-callback (zi/promise-callback prom callback)) context)
+          (catch KeeperException e (throw e)))
          prom)
-         {:acl (zi/try*
-                (seq (.getACL client path stat))
-                (catch KeeperException e (throw e)))
-          :stat (zi/stat-to-map stat)}))))
+       {:acl (zi/try*
+              (seq (.getACL client path stat))
+              (catch KeeperException e (throw e)))
+        :stat (zi/stat-to-map stat)}))))
 
 (defn add-auth-info
   "Add auth info to connection."
   ([^ZooKeeper client scheme auth]
-     (zi/try*
-      (.addAuthInfo client scheme (if (string? auth) (.getBytes auth "UTF-8") auth))
-      (catch KeeperException e (throw e)))))
+   (zi/try*
+    (.addAuthInfo client scheme (if (string? auth) (.getBytes auth "UTF-8") auth))
+    (catch KeeperException e (throw e)))))
 
 (defn acl-id
   "Returns an ACL Id object with the given scheme and ID value."
   ([scheme id-value]
-     (Id. scheme id-value)))
+   (Id. scheme id-value)))
 
 (defn acl
   "Creates an ACL object.
@@ -488,31 +486,31 @@ Out of the box ZooKeeper provides name service, configuration, and group members
 
 "
   ([scheme id-value perm & more-perms]
-     (ACL. (apply zi/perm-or zi/perms perm more-perms) (acl-id scheme id-value))))
+   (ACL. (apply zi/perm-or zi/perms perm more-perms) (acl-id scheme id-value))))
 
 (def default-perms [:read :write :create :delete])
 
 (defn world-acl
   "Creates an instance of an ACL using the world scheme."
   ([& perms]
-     (apply acl "world" "anyone" (or perms default-perms))))
+   (apply acl "world" "anyone" (or perms default-perms))))
 
 (defn ip-acl
   "Creats an instance of an ACL using the IP scheme."
   ([ip-address & perms]
-     (apply acl "ip" ip-address (or perms default-perms))))
+   (apply acl "ip" ip-address (or perms default-perms))))
 
 (defn host-acl
   "Creates an instance of an ACL using the host scheme."
   ([host-suffix & perms]
-     (apply acl "host" host-suffix (or perms default-perms))))
+   (apply acl "host" host-suffix (or perms default-perms))))
 
 (defn auth-acl
   "Creats an instance of an ACL using the auth scheme."
   ([& perms]
-     (apply acl "auth" "" (or perms default-perms))))
+   (apply acl "auth" "" (or perms default-perms))))
 
 (defn digest-acl
   "Creates an instance of an ACL using the digest scheme."
   ([username password & perms]
-     (apply acl "digest" (str username ":" password) (or perms default-perms))))
+   (apply acl "digest" (str username ":" password) (or perms default-perms))))
