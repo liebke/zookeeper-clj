@@ -7,8 +7,8 @@
   `(let [bytes# (make-array Byte/TYPE ~size)
          buf# (-> (ByteBuffer/allocateDirect ~size)
                   (~f ~value)
-                  .clear
-                  (.get bytes# 0 ~size))]
+                  .clear)]
+     (.get ^java.nio.ByteBuffer buf# bytes# 0 ~size)
      bytes#))
 
 (defprotocol ByteConverter
@@ -74,4 +74,3 @@
 (defn to-char
   ([bytes]
    (.getChar (ByteBuffer/wrap bytes))))
-
