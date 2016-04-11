@@ -25,7 +25,7 @@
 
 (defn stat-to-map
   ([^org.apache.zookeeper.data.Stat stat]
-     ;;(long czxid, long mzxid, long ctime, long mtime, int version, int cversion, int aversion, long ephemeralOwner, int dataLength, int numChildren, long pzxid)
+   ;;(long czxid, long mzxid, long ctime, long mtime, int version, int cversion, int aversion, long ephemeralOwner, int dataLength, int numChildren, long pzxid)
    (when stat
      {:czxid (.getCzxid stat)
       :mzxid (.getMzxid stat)
@@ -48,7 +48,7 @@
 
 ;; Watcher
 
-(defn make-watcher
+(defn ^Watcher make-watcher
   ([handler]
    (reify Watcher
      (process [this event]
@@ -65,7 +65,7 @@
                  :context context
                  :name name})))))
 
-(defn stat-callback
+(defn ^AsyncCallback$StatCallback stat-callback
   ([handler]
    (reify AsyncCallback$StatCallback
      (processResult [this return-code path context stat]
@@ -92,7 +92,7 @@
                  :path path
                  :context context})))))
 
-(defn data-callback
+(defn ^AsyncCallback$DataCallback data-callback
   ([handler]
    (reify AsyncCallback$DataCallback
      (processResult [this return-code path context data stat]
@@ -153,7 +153,7 @@
            :auth-ids ZooDefs$Ids/AUTH_IDS ;; This Id is only usable to set ACLs
            :creator-all-acl ZooDefs$Ids/CREATOR_ALL_ACL ;; This ACL gives the creators authentication id's all permissions
            :read-all-acl ZooDefs$Ids/READ_ACL_UNSAFE ;; This ACL gives the world the ability to read
-})
+           })
 
 (defn event-types
   ":NodeDeleted :NodeDataChanged :NodeCreated :NodeChildrenChanged :None"
@@ -166,4 +166,3 @@
 (defn client-states
   ":AUTH_FAILED :CLOSED :CONNECTED :ASSOCIATING :CONNECTING"
   ([] (into #{} (map #(keyword (.toString ^ZooKeeper$States %)) (ZooKeeper$States/values)))))
-
