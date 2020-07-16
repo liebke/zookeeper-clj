@@ -170,7 +170,7 @@
      (zi/try*
       (.create client path data acl
                (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
-      (catch org.apache.zookeeper.KeeperException$NodeExistsException e
+      (catch org.apache.zookeeper.KeeperException$NodeExistsException _
         false)
       (catch KeeperException e (throw e))))))
 
@@ -231,7 +231,7 @@
     @p3
 
   "
-  ([^ZooKeeper client ^String path & {:keys [watcher ^Boolean watch? async? callback context sort?]
+  ([^ZooKeeper client ^String path & {:keys [watcher ^Boolean watch? async? callback context]
                                       :or {watch? false
                                            async? false
                                            context path}}]
@@ -248,7 +248,7 @@
         (if watcher
           (seq (.getChildren client path (zi/make-watcher watcher)))
           (seq (.getChildren client path watch?)))
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch org.apache.zookeeper.KeeperException$NoNodeException _ false)
         (catch KeeperException e (throw e)))))))
 
 ;; filtering childrend
@@ -304,7 +304,7 @@
         (do
           (.delete client path version)
           true)
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch org.apache.zookeeper.KeeperException$NoNodeException _ false)
         (catch KeeperException e (throw e)))))))
 
 (defn delete-all
@@ -431,7 +431,7 @@
      (try
        (when (Arrays/equals data expected-value)
          (set-data client node new-value version))
-       (catch KeeperException$BadVersionException e
+       (catch KeeperException$BadVersionException _
          ;; try again if the data has been updated before we were able to
          (compare-and-set-data client node expected-value new-value))))))
 

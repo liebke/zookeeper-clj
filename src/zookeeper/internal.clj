@@ -126,7 +126,7 @@
 
 (defn promise-callback
   ([prom callback-fn]
-   (fn [{:keys [return-code path context name] :as result}]
+   (fn [result]
      (deliver prom result)
      (when callback-fn
        (callback-fn result)))))
