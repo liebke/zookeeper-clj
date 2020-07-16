@@ -1,21 +1,25 @@
 (ns zookeeper.internal
-  (:import (org.apache.zookeeper CreateMode
-                                 Watcher
-                                 ZooDefs$Perms
-                                 ZooDefs$Ids
-                                 ZooKeeper$States
-                                 Watcher$Event$KeeperState
-                                 Watcher$Event$EventType
-                                 AsyncCallback$StringCallback
-                                 AsyncCallback$VoidCallback
-                                 AsyncCallback$StatCallback
-                                 AsyncCallback$StatCallback
-                                 AsyncCallback$Children2Callback
-                                 AsyncCallback$DataCallback
-                                 AsyncCallback$ACLCallback)))
+  (:import
+   (java.util List)
+   (org.apache.zookeeper.data Stat)
+   (org.apache.zookeeper CreateMode
+                         Watcher
+                         ZooDefs$Perms
+                         ZooDefs$Ids
+                         ZooKeeper$States
+                         Watcher$Event$KeeperState
+                         Watcher$Event$EventType
+                         AsyncCallback$StringCallback
+                         AsyncCallback$VoidCallback
+                         AsyncCallback$StatCallback
+                         AsyncCallback$StatCallback
+                         AsyncCallback$Children2Callback
+                         AsyncCallback$DataCallback
+                         AsyncCallback$ACLCallback)))
 
 (defmacro try*
-  "Unwraps the RuntimeExceptions thrown by Clojure, and rethrows its cause. Only accepts a single expression."
+  "Unwraps the RuntimeExceptions thrown by Clojure, and rethrows its
+  cause. Only accepts a single expression."
   ([expression & catches]
    `(try
       (try
@@ -56,56 +60,64 @@
 
 ;; Callbacks
 
-(defn string-callback
+(defn ^AsyncCallback$StringCallback string-callback
+  "This callback is used to retrieve the name of the node."
   ([handler]
    (reify AsyncCallback$StringCallback
-     (processResult [this return-code path context name]
+     (^void processResult [this ^int return-code ^String path context ^String name]
        (handler {:return-code return-code
                  :path path
                  :context context
                  :name name})))))
 
 (defn ^AsyncCallback$StatCallback stat-callback
+  "This callback is used to retrieve the stat of the node."
   ([handler]
    (reify AsyncCallback$StatCallback
-     (processResult [this return-code path context stat]
+     (^void processResult [this ^int return-code ^String path context ^Stat stat]
        (handler {:return-code return-code
                  :path path
                  :context context
                  :stat (stat-to-map stat)})))))
 
-(defn children-callback
+(defn ^AsyncCallback$Children2Callback children-callback
+  "This callback is used to retrieve the children of the node."
   ([handler]
    (reify AsyncCallback$Children2Callback
-     (processResult [this return-code path context children stat]
+     (^void processResult [this ^int return-code ^String path context ^List children ^Stat stat]
        (handler {:return-code return-code
                  :path path
                  :context context
                  :children (seq children)
                  :stat (stat-to-map stat)})))))
 
-(defn void-callback
+(defn ^AsyncCallback$VoidCallback void-callback
+  "This callback doesn't retrieve anything from the node. It is useful for
+  some APIs that doesn't want anything sent back, e.g.
+  ZooKeeper#sync(String, VoidCallback, Object)."
   ([handler]
    (reify AsyncCallback$VoidCallback
-     (processResult [this return-code path context]
+     (^void processResult [this ^int return-code ^String path context]
        (handler {:return-code return-code
                  :path path
                  :context context})))))
 
 (defn ^AsyncCallback$DataCallback data-callback
+  "This callback is used to retrieve the data and stat of the node."
   ([handler]
    (reify AsyncCallback$DataCallback
-     (processResult [this return-code path context data stat]
+     (^void processResult [this ^int return-code ^String path context ^bytes data ^Stat stat]
        (handler {:return-code return-code
                  :path path
                  :context context
                  :data data
                  :stat (stat-to-map stat)})))))
 
-(defn acl-callback
+(defn ^AsyncCallback$ACLCallback acl-callback
+  "This callback is used to retrieve the ACL and stat of the node."
   ([handler]
    (reify AsyncCallback$ACLCallback
-     (processResult [this return-code path context acl stat]
+     (^void processResult [this ^int return-code ^String path context ^List acl ^Stat stat]
        (handler {:return-code return-code
                  :path path
                  :context context
@@ -114,7 +126,7 @@
 
 (defn promise-callback
   ([prom callback-fn]
-   (fn [{:keys [return-code path context name] :as result}]
+   (fn [result]
      (deliver prom result)
      (when callback-fn
        (callback-fn result)))))

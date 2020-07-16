@@ -41,21 +41,33 @@
            (throw (IllegalStateException. "Cannot connect to server")))))))
 
 (defn register-watcher
-  "Registers a default watcher function with this connection."
+  "Registers a default watcher function with this connection.
+  Overrides the watcher specified during connection."
   ([^ZooKeeper client watcher]
    (.register client (zi/make-watcher watcher))))
 
 (defn state
-  "Returns current state of client, including :CONNECTING,
-   :ASSOCIATING, :CONNECTED, :CLOSED, or :AUTH_FAILED"
+  "Returns the client's current state.
+  One of:
+  :ASSOCIATING :AUTH_FAILED :CLOSED :CONNECTED :CONNECTEDREADONLY :CONNECTING :NOT_CONNECTED"
   ([^ZooKeeper client]
    (keyword (.toString (.getState client)))))
 
 ;; node existence function
 
 (defn exists
-  "Returns the status of the given node, and nil
-   if the node does not exist.
+  "Returns the status of the given node, or nil if the node does not exist.
+
+  If the watch is true and the call is successful (no exception is
+  thrown), a watch will be left on the node with the given path. The
+  watch will be triggered by a successful operation that creates/delete
+  the node or sets the data on the node.
+
+  If a watcher is provided the function will be called asynchronously
+  with the provided watcher.
+
+  If a callback is provided or `async?` is true, exists will be called
+  asynchronously and return a promise.
 
   Examples:
 
@@ -158,14 +170,16 @@
      (zi/try*
       (.create client path data acl
                (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
-      (catch org.apache.zookeeper.KeeperException$NodeExistsException e
+      (catch org.apache.zookeeper.KeeperException$NodeExistsException _
         false)
       (catch KeeperException e (throw e))))))
 
 (defn create-all
   "Create a node and all of its parents. The last node will be ephemeral,
-   and its parents will be persistent. Option, like :persistent? :sequential?,
-   :acl, will only be applied to the last child node.
+   and its parents will be persistent.
+
+  Options like :persistent? :sequential? and :acl will only be applied
+  to the last child node.
 
   Examples:
   (delete-all client \"/foo\")
@@ -191,7 +205,8 @@
 ;; children functions
 
 (defn children
-  "Returns a sequence of child node name for the given node, nil if it has no children and false if the node does not exist.
+  "Returns a sequence of child node name for the given node, nil if it
+  has no children or false if the node does not exist.
 
   Examples:
 
@@ -216,7 +231,7 @@
     @p3
 
   "
-  ([^ZooKeeper client ^String path & {:keys [watcher ^Boolean watch? async? callback context sort?]
+  ([^ZooKeeper client ^String path & {:keys [watcher ^Boolean watch? async? callback context]
                                       :or {watch? false
                                            async? false
                                            context path}}]
@@ -233,7 +248,7 @@
         (if watcher
           (seq (.getChildren client path (zi/make-watcher watcher)))
           (seq (.getChildren client path watch?)))
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch org.apache.zookeeper.KeeperException$NoNodeException _ false)
         (catch KeeperException e (throw e)))))))
 
 ;; filtering childrend
@@ -257,7 +272,7 @@
 ;; node deletion functions
 
 (defn delete
-  "Deletes the given node, if it exists
+  "Delete the given node if it exists.
 
   Examples:
 
@@ -289,11 +304,11 @@
         (do
           (.delete client path version)
           true)
-        (catch org.apache.zookeeper.KeeperException$NoNodeException e false)
+        (catch org.apache.zookeeper.KeeperException$NoNodeException _ false)
         (catch KeeperException e (throw e)))))))
 
 (defn delete-all
-  "Deletes a node and all of its children."
+  "Delete a node and all of its children."
   ([^ZooKeeper client path & options]
    (when path
      (doseq [child (or (children client path) nil)]
@@ -301,7 +316,7 @@
      (apply delete client path options))))
 
 (defn delete-children
-  "Deletes all of the node's children."
+  "Delete all of a node's children."
   ([^ZooKeeper client path & options]
    (when path
      (let [{:keys [sort?] :or {sort? false}} options
@@ -312,7 +327,10 @@
 ;; data functions
 
 (defn data
-  "Returns a map with two fields, :data and :stat. The :stat field is the same map returned by the exists function, the :data field is a byte array of data from the given node.
+  "Returns a map with two fields, `:data` and `:stat`:
+
+  - `:stat`: node status. Same as returned by [[zookeeper/exists]].
+  - `:data`: byte array of data saved on node.
 
   Examples:
 
@@ -361,7 +379,10 @@
         :stat (zi/stat-to-map stat)}))))
 
 (defn set-data
-  "Sets the value of the data field of the given node.
+  "Set the data for the node of the given path if such a node exists and
+  the given version matches the version of the node.
+  if the given version is -1, it matches any node's versions.
+  Return the stat of the node.
 
   Examples:
 
@@ -410,14 +431,15 @@
      (try
        (when (Arrays/equals data expected-value)
          (set-data client node new-value version))
-       (catch KeeperException$BadVersionException e
+       (catch KeeperException$BadVersionException _
          ;; try again if the data has been updated before we were able to
          (compare-and-set-data client node expected-value new-value))))))
 
 ;; ACL
 
 (defn get-acl
-  "Returns a sequence of ACLs associated with the given node.
+  "Returns a sequence of ACLs associated with the node at the given path
+  and its stat.
 
   Examples:
 
@@ -496,26 +518,26 @@
 (def default-perms [:read :write :create :delete])
 
 (defn world-acl
-  "Creates an instance of an ACL using the world scheme."
+  "Create an instance of an ACL using the world scheme."
   ([& perms]
    (apply acl "world" "anyone" (or perms default-perms))))
 
 (defn ip-acl
-  "Creats an instance of an ACL using the IP scheme."
+  "Create an instance of an ACL using the IP scheme."
   ([ip-address & perms]
    (apply acl "ip" ip-address (or perms default-perms))))
 
 (defn host-acl
-  "Creates an instance of an ACL using the host scheme."
+  "Create an instance of an ACL using the host scheme."
   ([host-suffix & perms]
    (apply acl "host" host-suffix (or perms default-perms))))
 
 (defn auth-acl
-  "Creats an instance of an ACL using the auth scheme."
+  "Create an instance of an ACL using the auth scheme."
   ([& perms]
    (apply acl "auth" "" (or perms default-perms))))
 
 (defn digest-acl
-  "Creates an instance of an ACL using the digest scheme."
+  "Create an instance of an ACL using the digest scheme."
   ([username password & perms]
    (apply acl "digest" (str username ":" password) (or perms default-perms))))
