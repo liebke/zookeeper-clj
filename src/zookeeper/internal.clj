@@ -15,7 +15,8 @@
                                  AsyncCallback$ACLCallback)))
 
 (defmacro try*
-  "Unwraps the RuntimeExceptions thrown by Clojure, and rethrows its cause. Only accepts a single expression."
+  "Unwraps the RuntimeExceptions thrown by Clojure, and rethrows its
+  cause. Only accepts a single expression."
   ([expression & catches]
    `(try
       (try
@@ -57,6 +58,7 @@
 ;; Callbacks
 
 (defn string-callback
+  "This callback is used to retrieve the name of the node."
   ([handler]
    (reify AsyncCallback$StringCallback
      (processResult [this return-code path context name]
@@ -66,6 +68,7 @@
                  :name name})))))
 
 (defn ^AsyncCallback$StatCallback stat-callback
+  "This callback is used to retrieve the stat of the node."
   ([handler]
    (reify AsyncCallback$StatCallback
      (processResult [this return-code path context stat]
@@ -75,6 +78,7 @@
                  :stat (stat-to-map stat)})))))
 
 (defn children-callback
+  "This callback is used to retrieve the children of the node."
   ([handler]
    (reify AsyncCallback$Children2Callback
      (processResult [this return-code path context children stat]
@@ -85,6 +89,9 @@
                  :stat (stat-to-map stat)})))))
 
 (defn void-callback
+  "This callback doesn't retrieve anything from the node. It is useful for
+  some APIs that doesn't want anything sent back, e.g.
+  ZooKeeper#sync(String, VoidCallback, Object)."
   ([handler]
    (reify AsyncCallback$VoidCallback
      (processResult [this return-code path context]
@@ -93,6 +100,7 @@
                  :context context})))))
 
 (defn ^AsyncCallback$DataCallback data-callback
+  "This callback is used to retrieve the data and stat of the node."
   ([handler]
    (reify AsyncCallback$DataCallback
      (processResult [this return-code path context data stat]
@@ -103,6 +111,7 @@
                  :stat (stat-to-map stat)})))))
 
 (defn acl-callback
+  "This callback is used to retrieve the ACL and stat of the node."
   ([handler]
    (reify AsyncCallback$ACLCallback
      (processResult [this return-code path context acl stat]
