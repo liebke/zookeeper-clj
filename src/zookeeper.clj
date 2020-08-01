@@ -161,15 +161,15 @@
    (if (or async? callback)
      (let [prom (promise)]
        (zi/try*
-        (.create client path data acl
-                 (zi/create-modes {:persistent? persistent?, :sequential? sequential?})
-                 (zi/string-callback (zi/promise-callback prom callback))
-                 context)
+        (zi/create client path data acl
+                   (zi/create-modes {:persistent? persistent?, :sequential? sequential?})
+                   (zi/string-callback (zi/promise-callback prom callback))
+                   context)
         (catch KeeperException e (throw e)))
        prom)
      (zi/try*
-      (.create client path data acl
-               (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
+      (zi/create client path data acl
+                 (zi/create-modes {:persistent? persistent?, :sequential? sequential?}))
       (catch org.apache.zookeeper.KeeperException$NodeExistsException _
         false)
       (catch KeeperException e (throw e))))))
