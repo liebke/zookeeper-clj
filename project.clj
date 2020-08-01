@@ -5,5 +5,6 @@
                  [commons-codec "1.14"]
                  [org.apache.curator/curator-test "5.1.0" :scope "test"]]
   :repositories {"clojars" {:sign-releases false :url "https://clojars.org/repo/"}}
+  :global-vars {*warn-on-reflection* true}
   :plugins [[lein-ancient "0.6.15"]
             [lein-cljfmt "0.6.8"]])

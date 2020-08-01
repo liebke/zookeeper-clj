@@ -7,6 +7,7 @@
                          ZooDefs$Perms
                          ZooDefs$Ids
                          ZooKeeper$States
+                         ZooKeeper
                          Watcher$Event$KeeperState
                          Watcher$Event$EventType
                          AsyncCallback$StringCallback
@@ -49,6 +50,23 @@
      {:event-type (keyword (.name (.getType event)))
       :keeper-state (keyword (.name (.getState event)))
       :path (.getPath event)})))
+
+(defn create
+  "Internal create wrapper to avoid reflection."
+  ([^ZooKeeper client
+    ^String path
+    ^bytes data
+    ^List acl
+    ^CreateMode mode]
+   (.create client path data acl mode))
+  ([^ZooKeeper client
+    ^String path
+    ^bytes data
+    ^List acl
+    ^CreateMode mode
+    ^AsyncCallback$StringCallback string-callback
+    ^Object context]
+   (.create client path data acl mode string-callback context)))
 
 ;; Watcher
 
