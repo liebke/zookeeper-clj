@@ -1,9 +1,9 @@
 (defproject zookeeper-clj "0.9.5-SNAPSHOT"
   :description "A Clojure DSL for Apache ZooKeeper"
-  :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.apache.zookeeper/zookeeper "3.6.1"]
-                 [commons-codec "1.14"]
-                 [org.apache.curator/curator-test "5.1.0" :scope "test"]]
+  :dependencies [[org.clojure/clojure "1.11.1"]
+                 [org.apache.zookeeper/zookeeper "3.8.0"]
+                 [commons-codec "1.15"]
+                 [org.apache.curator/curator-test "5.2.1" :scope "test"]]
   :repositories {"clojars" {:sign-releases false :url "https://clojars.org/repo/"}}
   :global-vars {*warn-on-reflection* true}
   :plugins [[lein-ancient "0.6.15"]
