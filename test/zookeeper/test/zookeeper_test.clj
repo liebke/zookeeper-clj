@@ -2,9 +2,11 @@
   (:use [zookeeper]
         [clojure.test])
   (:import [java.util UUID]
-           [org.apache.curator.test TestingServer]))
+           [org.apache.curator.test TestingServer]
+           [ch.qos.logback.classic Level Logger]))
 
 (defn setup-embedded-zk [f]
+  (.setLevel ^Logger (org.slf4j.LoggerFactory/getLogger (Logger/ROOT_LOGGER_NAME)) Level/ERROR)
   (let [server (TestingServer. 2181)]
     (do (f)
         (.close server))))
