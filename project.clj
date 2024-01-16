@@ -4,7 +4,7 @@
                  [org.apache.zookeeper/zookeeper "3.9.1"]
                  [commons-codec "1.16.0"]
                  [org.apache.curator/curator-test "5.6.0" :scope "test"]]
-  :repositories {"clojars" {:sign-releases false :url "https://clojars.org/repo/"}}
+  :deploy-repositories {"clojars" {:sign-releases false :url "https://repo.clojars.org"}}
   :global-vars {*warn-on-reflection* true}
   :url "https://github.com/liebke/zookeeper-clj"
   :license {:name "Eclipse Public License"
