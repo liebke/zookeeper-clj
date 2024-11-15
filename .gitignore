@@ -11,3 +11,4 @@ target*
 .#*
 .clj-kondo/.cache
 .lsp
+.vscode
